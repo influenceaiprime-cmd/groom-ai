@@ -1,223 +1,170 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import UploadZone from '@/components/UploadZone';
-import { RescanPrompt, OxidationNote, WearTimePredictor } from '@/components/RetentionStack';
-import { LightingCheck, LegalNotes, ToneCalibrator } from '@/components/TrustStack';
-import ShadeResults from '@/components/ShadeResults';
-import MakeupCoach from '@/components/MakeupCoach';
-import LooksLibrary from '@/components/LooksLibrary';
-import LiveMirror from '@/components/LiveMirror';
-import ShareStudio from '@/components/ShareStudio';
-import PaletteScanner from '@/components/PaletteScanner';
-import WipeRecorder from '@/components/WipeRecorder';
-import PaywallModal from '@/components/PaywallModal';
-import ChatWidget from '@/components/ChatWidget';
+import { useEffect, useRef, useState } from 'react';
+import BeardStudio from '@/components/BeardStudio';
 import { useConfig } from '@/lib/useConfig';
 import { track } from '@/lib/track';
-import { SkinAnalysis } from '@/types';
-
-const FaceDetector = dynamic(() => import('@/components/FaceDetector'), { ssr: false });
 
 export default function Home() {
-  const [mode, setMode] = useState<'upload' | 'results' | 'mirror'>('upload');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<SkinAnalysis | null>(null);
-  const [lipColor, setLipColor] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [agree, setAgree] = useState(false);
   const [isPro, setIsPro] = useState(false);
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const [bgOk, setBgOk] = useState(false);
+  const [paywall, setPaywall] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeMsg, setCodeMsg] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const config = useConfig();
 
-  const refreshProStatus = () => {
-    fetch('/api/me').then(r => r.json()).then(d => setIsPro(!!d.pro)).catch(() => {});
-  };
-
   useEffect(() => {
-    refreshProStatus();
+    setConsent(localStorage.getItem('groom_consent') === '1');
+    fetch('/api/me').then((r) => r.json()).then((d) => setIsPro(!!d.pro)).catch(() => {});
     track('visit');
   }, []);
 
-  const effectivePro = isPro || !config.paywallEnabled;
-
-  const openPaywall = () => {
-    track('paywall_view');
-    setPaywallOpen(true);
+  const handleFile = (f: File | null) => {
+    if (!f || !f.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => { setImageUrl(reader.result as string); track('upload'); };
+    reader.readAsDataURL(f);
   };
 
-  const unlockPro = () => {
-    refreshProStatus();
-    setPaywallOpen(false);
-    track('pro_unlock');
+  const redeem = async () => {
+    const r = await fetch('/api/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (r.ok) { setIsPro(true); setPaywall(false); setCodeMsg(''); }
+    else setCodeMsg('Invalid code.');
   };
-
-  const handleImageUpload = (file: File) => {
-    setImageUrl(URL.createObjectURL(file));
-    setAnalysis(null);
-    setLipColor(null);
-    setMode('results');
-    track('upload');
-  };
-
-  const handleFaceDetected = async (r: number, g: number, b: number) => {
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ r, g, b }),
-      });
-      const a = await res.json();
-      setAnalysis(a);
-      track('scan_complete', { hex: a.skinToneHex, undertone: a.undertone, tone: a.toneCategory });
-      localStorage.setItem('glamai_last_scan', String(Date.now()));
-    } catch {
-      track('scan_failed');
-    }
-  };
-
-  const proTips = analysis ? [
-    analysis.undertone === 'cool'
-      ? 'Finish: dewy textures & pearl shimmer make your cool undertone glow.'
-      : analysis.undertone === 'warm'
-      ? 'Finish: satin textures & golden glow flatter your warm undertone.'
-      : 'Finish: luminous satin - your neutral undertone pulls off any finish.',
-    analysis.toneCategory === 'Deep' || analysis.toneCategory === 'Rich'
-      ? 'Prep: rich moisturizer + hydrating primer keep deep tones radiant.'
-      : 'Prep: lightweight gel moisturizer + SPF keep your base fresh all day.',
-    `Signature shade: ${analysis.matches[0].brand} ${analysis.matches[0].shadeName} - build your capsule makeup bag around it.`,
-  ] : [];
 
   return (
-    <main className="min-h-screen pb-20">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1512496015851-a90fb3838798?auto=format&fit=crop&w=1600&q=80"
-          alt=""
-          onLoad={() => setBgOk(true)}
-          onError={() => setBgOk(false)}
-          className={`w-full h-full object-cover scale-105 transition-opacity duration-1000 ${bgOk ? 'opacity-100' : 'opacity-0'}`}
-        />
-        {bgOk && (
-          <>
-            <div className="absolute inset-0 bg-[#140b0f]/80"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-[#140b0f]/50 via-[#140b0f]/70 to-[#140b0f]/95"></div>
-          </>
-        )}
-      </div>
-
-      {config.bannerText && (
-        <div className="bg-gradient-to-r from-[#7a2b3d] to-[#b76e79] text-white text-center text-sm font-bold py-2 px-4">
-          {config.bannerText}
-        </div>
-      )}
-
-      <nav className="flex items-center justify-between px-5 py-4 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-[#b76e79]/40 bg-black inline-block">
-            <img src="/logo.png" alt="GlamAI" className="w-full h-full object-cover scale-[1.35]" />
-          </span>
-          <span className="text-2xl font-extrabold text-[#f6ece6]">
-            Glam<span className="bg-gradient-to-r from-[#e9c49f] via-[#e3a2b4] to-[#b76e79] bg-clip-text text-transparent">AI</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isPro && (
-            <span className="text-xs font-extrabold bg-gradient-to-r from-[#d4af37] to-[#b76e79] text-white px-3 py-1 rounded-full shadow-md shadow-[#d4af37]/30">PRO 👑</span>
-          )}
-        </div>
-      </nav>
-
-      <header className="relative overflow-hidden text-center pt-6 pb-8 px-4">
-        <h1 className="relative text-4xl md:text-5xl font-extrabold text-[#f6ece6] max-w-xl mx-auto leading-tight">
-          Your live AI <span className="bg-gradient-to-r from-[#e9c49f] via-[#e3a2b4] to-[#b76e79] bg-clip-text text-transparent italic">makeup coach</span>
-        </h1>
-        <p className="relative text-lg text-[#c0a8a6] max-w-md mx-auto mt-3">
-          Scan, match, glow - science-grade beauty in your pocket.
-        </p>
-        <div className="relative flex justify-center gap-2 mt-4 flex-wrap">
-          <span className="text-[11px] font-bold text-[#e8b4bc] bg-[#b76e79]/10 border border-[#b76e79]/25 px-3 py-1 rounded-full backdrop-blur-md">🧪 CIELAB Science</span>
-          <span className="text-[11px] font-bold text-[#f3d9a4] bg-[#d4af37]/20 border border-[#d4af37]/40 px-3 py-1 rounded-full backdrop-blur-md">🎬 Live AR Mirror</span>
-          <span className="text-[11px] font-bold text-[#cbb3e3] bg-[#9370db]/10 border border-[#9370db]/25 px-3 py-1 rounded-full backdrop-blur-md">🎨 12-Season ID</span>
-        </div>
+    <main className="min-h-screen pb-16">
+      <header className="max-w-2xl mx-auto px-4 pt-6 pb-4 flex items-center justify-between">
+        <p className="text-xl font-black text-white">🧔 Groom<span className="text-amber-400">AI</span></p>
+        <button onClick={() => setPaywall(true)} className="text-xs font-bold text-amber-300 border border-amber-500/40 rounded-full px-3 py-1 hover:bg-amber-500/10">
+          {isPro ? 'PRO ✓' : 'Go PRO'}
+        </button>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4">
-        {mode === 'upload' && (
+      <div className="max-w-2xl mx-auto px-4 space-y-6">
+        {!imageUrl && (
           <>
-            <RescanPrompt />
-            <UploadZone onImageUpload={handleImageUpload} />
+            <div className="text-center space-y-3 pt-4">
+              <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+                ChatGPT can tell you to grow a beard.<br />
+                <span className="text-amber-400">We show you how it looks on YOUR face.</span>
+              </h1>
+              <p className="text-sm text-gray-400">
+                Upload your photo. Try beard styles in 10 seconds. Get exact specs for your barber.
+                <span className="text-amber-300 font-bold"> Your face never leaves your phone.</span>
+              </p>
+              <p className="text-[11px] text-gray-500 font-bold">Free preview • $6.99 to unlock everything • No subscription</p>
+            </div>
+
+            {!consent && (
+              <div className="rounded-3xl border border-amber-500/30 bg-[#111827] p-8 text-center space-y-3">
+                <p className="text-3xl">🔒</p>
+                <p className="text-white font-bold">Your face stays on your device</p>
+                <p className="text-xs text-gray-400">
+                  Scans run 100% in your browser - never uploaded, never stored.{' '}
+                  <a href="/privacy" className="text-amber-400 underline">Privacy Policy</a>
+                </p>
+                <label className="flex items-start gap-2 text-left text-xs text-gray-300 bg-black/30 rounded-xl p-3 cursor-pointer">
+                  <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-amber-500" />
+                  I consent to GroomAI processing my facial scan ON MY DEVICE for style preview, per the Privacy Policy.
+                </label>
+                <button
+                  disabled={!agree}
+                  onClick={() => { localStorage.setItem('groom_consent', '1'); track('consent_given'); setConsent(true); }}
+                  className="w-full py-3 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold disabled:opacity-40"
+                >
+                  Continue to my preview ⚡
+                </button>
+              </div>
+            )}
+
+            {consent && (
+              <div
+                onClick={() => inputRef.current?.click()}
+                className="cursor-pointer rounded-3xl border-2 border-dashed border-amber-500/30 bg-[#111827] p-10 text-center hover:border-amber-500/60 transition-colors"
+              >
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-3xl shadow-lg shadow-amber-600/20">🧔</div>
+                <p className="mt-4 text-lg font-bold text-white">Upload your photo</p>
+                <p className="mt-1 text-sm text-gray-400">Front-facing, decent light. JPG or PNG.</p>
+                <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] || null)} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+              <div className="bg-[#111827] rounded-2xl p-5 border border-red-500/20">
+                <p className="font-extrabold text-red-400">Asking free AI</p>
+                <ul className="mt-2 space-y-1 text-xs text-gray-400">
+                  <li>❌ Paragraphs of generic advice</li>
+                  <li>❌ No visual on YOUR face</li>
+                  <li>❌ Photo stored on their servers</li>
+                  <li>❌ Vague "ask your barber" instructions</li>
+                </ul>
+              </div>
+              <div className="bg-[#111827] rounded-2xl p-5 border border-amber-500/30">
+                <p className="font-extrabold text-amber-400">Using GroomAI</p>
+                <ul className="mt-2 space-y-1 text-xs text-gray-400">
+                  <li>✅ See any style on YOUR face in 10s</li>
+                  <li>✅ Exact mm lengths + guard numbers</li>
+                  <li>✅ Barber Card your barber can execute</li>
+                  <li>✅ Face never leaves your device</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-[#111827] rounded-2xl p-5 text-left space-y-2">
+              <p className="font-extrabold text-white">How it works - 10 seconds</p>
+              <p className="text-xs text-gray-400">1. Upload → AI maps your jawline, chin, and mouth on-device.</p>
+              <p className="text-xs text-gray-400">2. Try styles - stubble to full beard - auto-colored to YOUR hair.</p>
+              <p className="text-xs text-gray-400">3. Download the Barber Card: lengths, cheek line, neckline, notes.</p>
+              <p className="text-xs text-gray-400">4. Hand it to your barber. Get exactly what you saw.</p>
+            </div>
           </>
         )}
 
-        {mode === 'results' && imageUrl && (
-          <div className="space-y-6 text-center">
-            <FaceDetector imageUrl={imageUrl} lipColor={lipColor} onFaceDetected={handleFaceDetected} />
-            <LightingCheck imageUrl={imageUrl} />
-            {analysis && <ShadeResults analysis={analysis} isPro={effectivePro} onUnlock={openPaywall} />}
-            {analysis && <OxidationNote />}
-            {analysis && <WearTimePredictor />}
-            {analysis && <LegalNotes />}
-            {analysis && <ToneCalibrator />}
-            {analysis && <MakeupCoach analysis={analysis} selectedLip={lipColor} onLipSelect={setLipColor} isPro={effectivePro} onUnlock={openPaywall} />}
-            {analysis && <LooksLibrary analysis={analysis} isPro={effectivePro} onUnlock={openPaywall} />}
-            {analysis && isPro && (
-              <div className="rounded-2xl p-[2px] bg-gradient-to-r from-[#d4af37] via-[#b76e79] to-[#7a2b3d] shadow-xl shadow-[#b76e79]/20">
-                <div className="bg-white rounded-2xl p-5 text-left space-y-2">
-                  <p className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] to-[#b76e79]">👑 PRO Glam Report</p>
-                  {proTips.map((t, i) => (
-                    <p key={i} className="text-sm text-gray-700">✨ {t}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-            {analysis && config.scannerEnabled && <PaletteScanner isPro={effectivePro} onUnlock={openPaywall} />}
-            {analysis && <ShareStudio imageUrl={imageUrl} analysis={analysis} isPro={effectivePro} />}
-            {analysis && config.videoEnabled && <WipeRecorder imageUrl={imageUrl} isPro={effectivePro} />}
-            {analysis && config.mirrorEnabled && (
-              <button
-                onClick={() => { track('mirror_open'); setMode('mirror'); }}
-                className="w-full py-4 bg-gradient-to-r from-[#7a2b3d] to-[#b76e79] text-white rounded-xl font-extrabold text-lg shadow-lg shadow-[#b76e79]/30 hover:scale-105 transition-transform"
-              >
-                🎬 TRY LIVE MIRROR MODE
-              </button>
-            )}
-            <button
-              onClick={() => { setImageUrl(null); setAnalysis(null); setLipColor(null); setMode('upload'); }}
-              className="w-full py-3 bg-white/5 border border-white/10 text-[#ddc9c5] rounded-xl font-semibold hover:bg-white/10 transition-colors"
-            >
-              Try Another Photo
-            </button>
+        {imageUrl && (
+          <div className="space-y-4">
+            <BeardStudio imageUrl={imageUrl} isPro={isPro} onUnlock={() => setPaywall(true)} />
+            <button onClick={() => setImageUrl(null)} className="text-xs text-gray-500 hover:text-amber-300 font-bold">← Try another photo</button>
           </div>
         )}
 
-        {mode === 'mirror' && (
-          <div className="space-y-4 text-center">
-            <LiveMirror selectedLip={lipColor} isPro={effectivePro} onUnlock={openPaywall} />
-            <button
-              onClick={() => setMode('results')}
-              className="w-full py-3 bg-white/5 border-2 border-[#b76e79] text-[#e8b4bc] rounded-xl font-bold hover:bg-[#b76e79]/10"
-            >
-              ← Back to Results
-            </button>
+        <footer className="pt-6 text-center space-y-2">
+          <div className="space-x-4">
+            <a href="/privacy" className="text-[11px] text-gray-500 hover:text-amber-300">Privacy Policy</a>
+            <a href="/terms" className="text-[11px] text-gray-500 hover:text-amber-300">Terms of Service</a>
           </div>
-        )}
+          <p className="text-[10px] text-gray-600">GroomAI provides style guidance for informational purposes. Your photo is processed on-device and never stored.</p>
+        </footer>
       </div>
 
-      <PaywallModal
-        open={paywallOpen}
-        onClose={() => setPaywallOpen(false)}
-        onUnlock={unlockPro}
-        headline={config.paywallHeadline}
-        monthly={config.proMonthly}
-        yearly={config.proYearly}
-      />
-      <ChatWidget analysis={analysis} isPro={effectivePro} />
-      <footer className="max-w-2xl mx-auto px-4 pt-6 text-center space-x-4">
-        <a href="/privacy" className="text-[11px] text-[#937b7c] hover:text-[#e8b4bc]">Privacy Policy</a>
-        <a href="/terms" className="text-[11px] text-[#937b7c] hover:text-[#e8b4bc]">Terms of Service</a>
-        <p className="block text-[10px] text-[#6b5560] pt-2">GlamAI provides cosmetic recommendations for informational purposes. Patch test new products before full application.</p>
-      </footer>
+      {paywall && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-6 max-w-sm w-full space-y-3">
+            <p className="text-xl font-extrabold text-white">🧔 Unlock GroomAI PRO</p>
+            <p className="text-xs text-gray-400">All beard styles + Barber Card. $6.99 one-time. No subscription. No auto-renewal.</p>
+            {config.whopLink ? (
+              <a href={config.whopLink} target="_blank" rel="noreferrer" onClick={() => track('checkout_click')} className="block w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold text-center">
+                👑 Unlock PRO Now
+              </a>
+            ) : (
+              <p className="text-xs text-gray-500">Checkout launching soon - use an access code below.</p>
+            )}
+            <div className="flex gap-2">
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Access code" className="flex-1 bg-black/40 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white" />
+              <button onClick={redeem} className="px-4 rounded-xl bg-gray-700 text-white font-bold text-sm">Redeem</button>
+            </div>
+            {codeMsg && <p className="text-xs text-red-400">{codeMsg}</p>}
+            <button onClick={() => setPaywall(false)} className="w-full text-xs text-gray-500">Close</button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

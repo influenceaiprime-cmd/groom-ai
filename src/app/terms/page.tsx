@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Terms of Service - GlamAI' };
+export const metadata: Metadata = { title: 'Terms of Service - GroomAI' };
 
 export default function TermsPage() {
   return (
     <main className="min-h-screen max-w-2xl mx-auto px-6 py-10">
       <h1 className="text-3xl font-extrabold text-[#f6ece6] mb-2">Terms of Service</h1>
-      <p className="text-xs text-[#937b7c] mb-8">By using GlamAI you agree to these terms.</p>
+      <p className="text-xs text-[#937b7c] mb-8">By using GroomAI you agree to these terms.</p>
 
       <section className="space-y-4 text-sm text-[#ddc9c5]">
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">1. The service</h2>
-          <p>GlamAI provides AI-powered cosmetic color analysis, shade matching, and makeup education for entertainment and educational purposes.</p>
+          <p>GroomAI provides AI-powered cosmetic color analysis, shade matching, and makeup education for entertainment and educational purposes.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">2. Not professional advice</h2>
-          <p>GlamAI is not medical or dermatological advice. Always patch-test new products. Consult a professional for skin conditions or allergies.</p>
+          <p>GroomAI is not medical or dermatological advice. Always patch-test new products. Consult a professional for skin conditions or allergies.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">3. Free & PRO</h2>
@@ -23,7 +23,7 @@ export default function TermsPage() {
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">4. Your content</h2>
-          <p>You own everything you export. Free exports carry a GlamAI watermark. Only upload photos you have the right to use.</p>
+          <p>You own everything you export. Free exports carry a GroomAI watermark. Only upload photos you have the right to use.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">5. Acceptable use</h2>
@@ -35,7 +35,7 @@ export default function TermsPage() {
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">7. Liability</h2>
-          <p>GlamAI is provided "as is". Shade matches are estimates affected by your lighting. We are not liable for product purchase outcomes.</p>
+          <p>GroomAI is provided "as is". Shade matches are estimates affected by your lighting. We are not liable for product purchase outcomes.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">8. Contact</h2>
@@ -44,7 +44,7 @@ export default function TermsPage() {
       </section>
 
       <p className="mt-10 text-center">
-        <a href="/" className="text-xs text-[#b76e79] hover:text-[#e8b4bc]">← Back to GlamAI</a>
+        <a href="/" className="text-xs text-[#b76e79] hover:text-[#e8b4bc]">← Back to GroomAI</a>
       </p>
     </main>
   );

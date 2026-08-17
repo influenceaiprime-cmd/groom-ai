@@ -1,35 +1,21 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GlamAI - Your Live AI Makeup Coach',
-  description: 'Scan your face, get your 12-season color ID, match your perfect foundation shade, and try lipstick live in the AR mirror.',
-  icons: [
-    { rel: 'icon', url: '/favicon.svg', type: 'image/svg+xml' },
-    { rel: 'icon', url: '/favicon.png' },
-  ],
-  openGraph: {
-    title: 'GlamAI - Your Live AI Makeup Coach',
-    description: 'Scan, match, glow - science-grade beauty in your pocket.',
-    type: 'website',
-    images: [{ url: 'https://images.unsplash.com/photo-1512496015851-a90fb3838798?auto=format&fit=crop&w=1200&q=80', width: 1200, height: 630, alt: 'GlamAI luxury AI makeup studio' }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'GlamAI - Your Live AI Makeup Coach',
-    description: 'Scan, match, glow - science-grade beauty in your pocket.',
-    images: ['https://images.unsplash.com/photo-1512496015851-a90fb3838798?auto=format&fit=crop&w=1200&q=80'],
-  },
+  title: 'GroomAI - See Any Beard on YOUR Face Before You Grow It',
+  description: 'Try beard styles on your actual face in 10 seconds. Get exact barber specs. Your photo never leaves your device.',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
+        <Script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js" strategy="beforeInteractive" />
       </head>
-      <body>{children}</body>
+      <body className="antialiased bg-[#0b0f14] text-gray-200">
+        {children}
+      </body>
     </html>
   );
 }
