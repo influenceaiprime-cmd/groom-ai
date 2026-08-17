@@ -218,7 +218,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       (canvas as any).__img = img;
       
-      const fa = (window as any).faceApi;
+      let fa: any = (window as any).faceApi || (window as any).faceapi; for (let i = 0; i < 20 && !fa; i++) { await new Promise((r) => setTimeout(r, 500)); fa = (window as any).faceApi || (window as any).faceapi; }
       if (!fa) { if (alive) setStatus('AI not loaded - refresh the page.'); return; }
       
       try {
