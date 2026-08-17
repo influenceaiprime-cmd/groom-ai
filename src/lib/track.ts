@@ -2,10 +2,10 @@ import { supabase } from './db';
 
 export function getVisitorId(): string {
   if (typeof window === 'undefined') return 'server';
-  let id = localStorage.getItem('glamai_vid');
+  let id = localStorage.getItem('groomai_vid');
   if (!id) {
     id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-    localStorage.setItem('glamai_vid', id);
+    localStorage.setItem('groomai_vid', id);
   }
   return id;
 }
