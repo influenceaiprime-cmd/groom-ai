@@ -83,7 +83,7 @@ export default function AdminCockpit() {
   return (
     <main className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8 font-sans">
       <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
-        <h1 className="text-2xl font-bold text-pink-500">🎛️ GlamAI Control Room</h1>
+        <h1 className="text-2xl font-bold text-pink-500">🎛️ GroomAI Control Room</h1>
         <button onClick={() => { sessionStorage.removeItem('admin_pw'); setAuthed(false); }} className="text-xs text-gray-500 hover:text-red-500">Logout</button>
       </header>
 

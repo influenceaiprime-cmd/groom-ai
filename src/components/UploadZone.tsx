@@ -38,7 +38,7 @@ export default function UploadZone({ onImageUpload }: UploadZoneProps) {
         </p>
         <label className="flex items-start gap-2 text-left text-xs text-gray-300 bg-black/30 rounded-xl p-3 cursor-pointer">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink-500" />
-          I consent to GlamAI processing my facial scan ON MY DEVICE for shade matching, in accordance with the Privacy Policy.
+          I consent to GroomAI processing my facial scan ON MY DEVICE for shade matching, in accordance with the Privacy Policy.
         </label>
         <button
           disabled={!agree}
