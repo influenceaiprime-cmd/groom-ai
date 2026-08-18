@@ -58,50 +58,57 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen pb-16">
-      <header className="max-w-2xl mx-auto px-4 pt-6 pb-4 flex items-center justify-between">
-        <p className="text-xl font-black text-white flex items-center gap-2">
-          <img src="/favicon.svg" alt="GroomAI" className="w-7 h-7" />
-          Groom<span className="text-amber-400">AI</span>
-        </p>
-        <button onClick={() => setPaywall(true)} className="text-xs font-bold text-amber-300 border border-amber-500/40 rounded-full px-3 py-1 hover:bg-amber-500/10">
-          {isPro ? 'PRO ✓' : 'Go PRO'}
+    <main className="min-h-screen pb-16" style={{ background: 'var(--ink-0)' }}>
+      <header className="max-w-2xl mx-auto px-4 pt-8 pb-5 flex items-center justify-between">
+        <div>
+          <p className="text-lg tracking-[0.15em] uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>
+            Groom<span style={{ color: 'var(--steel-2)' }}>AI</span>
+          </p>
+          <p className="text-[9px] tracking-[0.25em] uppercase mt-0.5" style={{ color: 'var(--steel-3)' }}>Est. 2026</p>
+        </div>
+        <button
+          onClick={() => setPaywall(true)}
+          className="text-[11px] tracking-wider uppercase px-4 py-1.5 transition-colors"
+          style={{ color: 'var(--steel-1)', border: '1px solid var(--hairline)' }}
+        >
+          {isPro ? 'Pro' : 'Go Pro'}
         </button>
       </header>
+      <div className="max-w-2xl mx-auto px-4 nameplate-rule" />
 
-      <div className="max-w-2xl mx-auto px-4 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 space-y-8 pt-8">
         {!imageUrl && (
           <>
-            <div className="text-center space-y-3 pt-4">
-              <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+            <div className="text-center space-y-4">
+              <h1 className="text-3xl sm:text-4xl leading-tight" style={{ color: '#e4e9ed' }}>
                 Free AI can tell you to grow a beard.<br />
-                <span className="text-amber-400">We show you how it looks on YOUR face.</span>
+                <span style={{ color: 'var(--steel-2)' }}>We show you how it looks on your face.</span>
               </h1>
-              <p className="text-sm text-gray-400">
-                Upload your photo. Try beard styles in 10 seconds. Get exact specs for your barber.
-                <span className="text-amber-300 font-bold"> Your face never leaves your phone.</span>
+              <p className="text-sm" style={{ color: 'var(--steel-2)' }}>
+                Upload your photo. Try beard styles in ten seconds. Get exact specs for your barber.
+                <span style={{ color: 'var(--steel-1)' }}> Your face never leaves your phone.</span>
               </p>
-              <p className="text-[11px] text-gray-500 font-bold">Free preview • $6.99 to unlock everything • No subscription</p>
+              <p className="text-[11px] tracking-wide mono" style={{ color: 'var(--steel-3)' }}>Free preview · $6.99 one-time · No subscription</p>
             </div>
 
             {!consent && (
-              <div className="rounded-3xl border border-amber-500/30 bg-[#111827] p-8 text-center space-y-3">
-                <p className="text-3xl">🔒</p>
-                <p className="text-white font-bold">Your face stays on your device</p>
-                <p className="text-xs text-gray-400">
-                  Scans run 100% in your browser - never uploaded, never stored.{' '}
-                  <a href="/privacy" className="text-amber-400 underline">Privacy Policy</a>
+              <div className="p-8 text-center space-y-4" style={{ background: 'var(--ink-1)', border: '1px solid var(--hairline)' }}>
+                <p className="text-sm tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>Your face stays on your device</p>
+                <p className="text-xs" style={{ color: 'var(--steel-2)' }}>
+                  Scans run entirely in your browser - never uploaded, never stored.{' '}
+                  <a href="/privacy" className="underline" style={{ color: 'var(--steel-1)' }}>Privacy Policy</a>
                 </p>
-                <label className="flex items-start gap-2 text-left text-xs text-gray-300 bg-black/30 rounded-xl p-3 cursor-pointer">
-                  <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-amber-500" />
-                  I consent to GroomAI processing my facial scan ON MY DEVICE for style preview, per the Privacy Policy.
+                <label className="flex items-start gap-2 text-left text-xs cursor-pointer p-3" style={{ color: 'var(--steel-2)', background: 'rgba(0,0,0,0.3)' }}>
+                  <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" style={{ accentColor: 'var(--steel-2)' }} />
+                  I consent to GroomAI processing my facial scan on my device for style preview, per the Privacy Policy.
                 </label>
                 <button
                   disabled={!agree}
                   onClick={() => { localStorage.setItem('groom_consent', '1'); track('consent_given'); setConsent(true); }}
-                  className="w-full py-3 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold disabled:opacity-40"
+                  className="w-full py-3 tracking-wider uppercase text-sm disabled:opacity-30 transition-opacity"
+                  style={{ background: 'var(--steel-2)', color: 'var(--ink-0)' }}
                 >
-                  Continue to my preview ⚡
+                  Continue to preview
                 </button>
               </div>
             )}
@@ -110,46 +117,46 @@ export default function Home() {
               <div className="space-y-2">
                 <div
                   onClick={() => inputRef.current?.click()}
-                  className="cursor-pointer rounded-3xl border-2 border-dashed border-amber-500/30 bg-[#111827] p-10 text-center hover:border-amber-500/60 transition-colors"
+                  className="cursor-pointer p-10 text-center transition-colors"
+                  style={{ border: '1px dashed var(--hairline)', background: 'var(--ink-1)' }}
                 >
-                  <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-3xl shadow-lg shadow-amber-600/20">🧔</div>
-                  <p className="mt-4 text-lg font-bold text-white">Upload your photo</p>
-                  <p className="mt-1 text-sm text-gray-400">Front-facing, decent light. JPG or PNG.</p>
+                  <p className="text-sm tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>Upload your photo</p>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--steel-3)' }}>Front-facing, decent light. JPG or PNG.</p>
                   <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] || null)} />
                 </div>
-                {uploadError && <p className="text-xs text-red-400 text-center font-semibold">{uploadError}</p>}
+                {uploadError && <p className="text-xs text-center font-semibold" style={{ color: '#c9807f' }}>{uploadError}</p>}
               </div>
             )}
 
             <WhyGroomAI />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-              <div className="bg-[#111827] rounded-2xl p-5 border border-red-500/20">
-                <p className="font-extrabold text-red-400">Asking Free AI</p>
-                <ul className="mt-2 space-y-1 text-xs text-gray-400">
-                  <li>❌ Paragraphs of generic advice</li>
-                  <li>❌ No visual on YOUR face</li>
-                  <li>❌ Photo stored on their servers</li>
-                  <li>❌ Vague "ask your barber" instructions</li>
+              <div className="p-5" style={{ background: 'var(--ink-1)', border: '1px solid var(--hairline)' }}>
+                <p className="text-xs tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: '#a88585' }}>Asking free AI</p>
+                <ul className="mt-3 space-y-1.5 text-xs" style={{ color: 'var(--steel-3)' }}>
+                  <li>— Paragraphs of generic advice</li>
+                  <li>— No visual on your face</li>
+                  <li>— Photo stored on their servers</li>
+                  <li>— Vague "ask your barber" instructions</li>
                 </ul>
               </div>
-              <div className="bg-[#111827] rounded-2xl p-5 border border-amber-500/30">
-                <p className="font-extrabold text-amber-400">Using GroomAI</p>
-                <ul className="mt-2 space-y-1 text-xs text-gray-400">
-                  <li>✅ See any style on YOUR face in 10s</li>
-                  <li>✅ Exact mm lengths + guard numbers</li>
-                  <li>✅ Barber Card your barber can execute</li>
-                  <li>✅ Face never leaves your device</li>
+              <div className="p-5" style={{ background: 'var(--ink-1)', border: '1px solid var(--steel-3)' }}>
+                <p className="text-xs tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>Using GroomAI</p>
+                <ul className="mt-3 space-y-1.5 text-xs" style={{ color: 'var(--steel-2)' }}>
+                  <li>— See any style on your face in 10s</li>
+                  <li>— Exact mm lengths and guard numbers</li>
+                  <li>— Barber Card your barber can execute</li>
+                  <li>— Face never leaves your device</li>
                 </ul>
               </div>
             </div>
 
-            <div className="bg-[#111827] rounded-2xl p-5 text-left space-y-2">
-              <p className="font-extrabold text-white">How it works - 10 seconds</p>
-              <p className="text-xs text-gray-400">1. Upload → AI maps your jawline, chin, and mouth on-device.</p>
-              <p className="text-xs text-gray-400">2. Try styles - stubble to full beard - auto-colored to YOUR hair.</p>
-              <p className="text-xs text-gray-400">3. Download the Barber Card: lengths, cheek line, neckline, notes.</p>
-              <p className="text-xs text-gray-400">4. Hand it to your barber. Get exactly what you saw.</p>
+            <div className="p-5 text-left space-y-2" style={{ background: 'var(--ink-1)', border: '1px solid var(--hairline)' }}>
+              <p className="text-xs tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>How it works</p>
+              <p className="text-xs" style={{ color: 'var(--steel-2)' }}>01 — Upload. Our model maps your jawline, chin, and mouth on-device.</p>
+              <p className="text-xs" style={{ color: 'var(--steel-2)' }}>02 — Try styles, stubble to full beard, auto-colored to your hair.</p>
+              <p className="text-xs" style={{ color: 'var(--steel-2)' }}>03 — Download the Barber Card: lengths, cheek line, neckline, notes.</p>
+              <p className="text-xs" style={{ color: 'var(--steel-2)' }}>04 — Hand it to your barber. Get exactly what you saw.</p>
             </div>
           </>
         )}
@@ -157,39 +164,39 @@ export default function Home() {
         {imageUrl && (
           <div className="space-y-4">
             <BeardStudio imageUrl={imageUrl} isPro={isPro} onUnlock={() => setPaywall(true)} />
-            <button onClick={() => { setImageUrl(null); setUploadError(''); }} className="text-xs text-gray-500 hover:text-amber-300 font-bold">← Try another photo</button>
+            <button onClick={() => { setImageUrl(null); setUploadError(''); }} className="text-xs tracking-wide uppercase" style={{ color: 'var(--steel-3)' }}>← Try another photo</button>
           </div>
         )}
 
         <footer className="pt-6 text-center space-y-2">
           <div className="space-x-4">
-            <a href="/privacy" className="text-[11px] text-gray-500 hover:text-amber-300">Privacy Policy</a>
-            <a href="/terms" className="text-[11px] text-gray-500 hover:text-amber-300">Terms of Service</a>
+            <a href="/privacy" className="text-[11px] tracking-wide uppercase" style={{ color: 'var(--steel-3)' }}>Privacy Policy</a>
+            <a href="/terms" className="text-[11px] tracking-wide uppercase" style={{ color: 'var(--steel-3)' }}>Terms of Service</a>
           </div>
-          <p className="text-[10px] text-gray-600">GroomAI provides style guidance for informational purposes. Your photo is processed on-device and never stored.</p>
+          <p className="text-[10px]" style={{ color: 'var(--steel-3)' }}>GroomAI provides style guidance for informational purposes. Your photo is processed on-device and never stored.</p>
         </footer>
       </div>
 
       {paywall && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4" onClick={() => setPaywall(false)}>
-          <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-6 max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
-            <p className="text-xl font-extrabold text-white">🧔 Unlock GroomAI PRO</p>
-            <p className="text-xs text-gray-400">All beard styles + Barber Card. $6.99 one-time. No subscription. No auto-renewal.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }} onClick={() => setPaywall(false)}>
+          <div className="max-w-sm w-full space-y-4 p-7" style={{ background: 'var(--ink-1)', border: '1px solid var(--hairline)' }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg tracking-wider uppercase" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>Unlock GroomAI Pro</p>
+            <p className="text-xs" style={{ color: 'var(--steel-2)' }}>All beard styles and Barber Card. $6.99 one-time. No subscription, no auto-renewal.</p>
             {config.whopLink ? (
-              <a href={config.whopLink} target="_blank" rel="noreferrer" onClick={() => track('checkout_click')} className="block w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold text-center">
-                👑 Unlock PRO Now
+              <a href={config.whopLink} target="_blank" rel="noreferrer" onClick={() => track('checkout_click')} className="block w-full py-3 tracking-wider uppercase text-sm text-center" style={{ background: 'var(--steel-2)', color: 'var(--ink-0)' }}>
+                Unlock Pro Now
               </a>
             ) : (
-              <p className="text-xs text-gray-500">Checkout launching soon - use an access code below.</p>
+              <p className="text-xs" style={{ color: 'var(--steel-3)' }}>Checkout launching soon - use an access code below.</p>
             )}
             <div className="flex gap-2">
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Access code" className="flex-1 bg-black/40 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white" />
-              <button onClick={redeem} disabled={redeeming} className="px-4 rounded-xl bg-gray-700 text-white font-bold text-sm disabled:opacity-50">
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Access code" className="flex-1 px-3 py-2 text-sm" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid var(--hairline)', color: 'var(--steel-1)' }} />
+              <button onClick={redeem} disabled={redeeming} className="px-4 text-sm tracking-wide uppercase disabled:opacity-50" style={{ background: 'var(--ink-2)', color: 'var(--steel-1)', border: '1px solid var(--hairline)' }}>
                 {redeeming ? '...' : 'Redeem'}
               </button>
             </div>
-            {codeMsg && <p className="text-xs text-red-400">{codeMsg}</p>}
-            <button onClick={() => setPaywall(false)} className="w-full text-xs text-gray-500">Close</button>
+            {codeMsg && <p className="text-xs" style={{ color: '#c9807f' }}>{codeMsg}</p>}
+            <button onClick={() => setPaywall(false)} className="w-full text-xs tracking-wide uppercase" style={{ color: 'var(--steel-3)' }}>Close</button>
           </div>
         </div>
       )}
