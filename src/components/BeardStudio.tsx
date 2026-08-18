@@ -1,5 +1,6 @@
 'use client';
 import { analyzeFaceShape } from '@/lib/faceShape';
+import { HAIR_STYLES, renderHair, coherenceScore } from '@/lib/hairEngine';
 
 import { useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/track';
@@ -36,6 +37,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const [status, setStatus] = useState('Mapping your face...');
   const [detecting, setDetecting] = useState(true);
   const [faceData, setFaceData] = useState<any>(null);
+  const [hairStyle, setHairStyle] = useState("none");
+  const hairStyleRef = useRef("none");
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -248,8 +251,10 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
     // Composite the finished, feathered beard layer onto the real photo
     ctx.drawImage(layer, 0, 0);
+    renderHair(ctx, canvas, pts, hairStyleRef.current, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
   };
 
+  useEffect(() => { hairStyleRef.current = hairStyle; drawRef.current(); }, [hairStyle]);
   const drawRef = useRef(draw);
   drawRef.current = draw;
 
@@ -406,6 +411,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
             );
           })}
         </div>
+        <div className="flex flex-wrap justify-center gap-2">{HAIR_STYLES.map((hs) => { const locked = hs.pro && !isPro; return (<button key={hs.id} onClick={() => { if (locked) { onUnlock && onUnlock(); return; } setHairStyle(hs.id); track("hair_style", { style: hs.id }); }} className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${hairStyle === hs.id ? "border-amber-500 text-amber-300 bg-amber-500/10" : "border-gray-700 text-gray-400"} ${locked ? "opacity-60" : ""}`}>{locked ? "🔒 " : "💈 "}{hs.name}</button>); })}</div>
+        {hairStyle !== "none" && style !== "clean" && (<p className="text-center text-[11px] font-bold text-amber-300">Style Coherence: {coherenceScore(hairStyle, style).score}% — {coherenceScore(hairStyle, style).label}</p>)}
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-400 font-bold">
           <label>Length
             <input type="range" min={0.6} max={1.6} step={0.05} value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full accent-amber-500" />
