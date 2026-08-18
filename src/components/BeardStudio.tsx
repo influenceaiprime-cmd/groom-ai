@@ -56,7 +56,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
   const draw = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas ? canvas.getContext('2d') : null;
+    const ctx = canvas ? canvas.getContext('2d', { willReadFrequently: true }) : null;
     const pts = ptsRef.current;
     if (!canvas || !ctx) return;
     const img = (canvas as any).__img as HTMLImageElement | undefined;
@@ -99,7 +99,7 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
       const scale = Math.min(1, maxW / img.width);
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       (canvas as any).__img = img;
 
