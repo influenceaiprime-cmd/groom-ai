@@ -268,7 +268,7 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
         )}
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-400 font-bold">
           <label>Density
-            <input type="range" min={0.3} max={1} step={0.05} value={density} onChange={(e) => setDensity(Number(e.target.value))} className="w-full accent-amber-500" />
+            <input type="range" min={0.55} max={1} step={0.05} value={density} onChange={(e) => setDensity(Number(e.target.value))} className="w-full accent-amber-500" />
           </label>
           <label>Hair Length
             <input type="range" min={0.6} max={1.6} step={0.05} value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full accent-amber-500" />
