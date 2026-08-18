@@ -36,6 +36,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const lumRef = useRef<{ data: Uint8ClampedArray; w: number; h: number } | null>(null);
   const grayRef = useRef<HTMLCanvasElement | null>(null);
   const hairPatchRef = useRef<HTMLCanvasElement | null>(null);
+  const debugPatchCanvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
 
   const [style, setStyle] = useState('stubble');
@@ -144,7 +145,7 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
             gc.width = canvas.width; gc.height = canvas.height;
             const gtx = gc.getContext('2d');
             if (gtx) { gtx.filter = 'grayscale(100%)'; gtx.drawImage(img, 0, 0); grayRef.current = gc; }
-          const fh = Math.hypot(pts[8].x - pts[27].x, pts[8].y - pts[27].y); const hsize = Math.max(24, Math.floor(fh * 0.5)); const hpc = document.createElement("canvas"); hpc.width = hsize; hpc.height = hsize; const hctx2 = hpc.getContext("2d"); if (hctx2) { hctx2.drawImage(img, Math.max(0, pts[27].x - hsize / 2), Math.max(0, pts[27].y - fh * 0.75 - hsize / 2), hsize, hsize, 0, 0, hsize, hsize); const hrc = document.createElement("canvas"); hrc.width = hsize; hrc.height = hsize; const hrctx = hrc.getContext("2d"); if (hrctx) { hrctx.translate(hsize / 2, hsize / 2); hrctx.rotate(Math.PI / 2); hrctx.drawImage(hpc, -hsize / 2, -hsize / 2); hairPatchRef.current = hrc; } } setStatus("Face locked - try styles below");
+          const fh = Math.hypot(pts[8].x - pts[27].x, pts[8].y - pts[27].y); const hsize = Math.max(24, Math.floor(fh * 0.5)); const hpc = document.createElement("canvas"); hpc.width = hsize; hpc.height = hsize; const hctx2 = hpc.getContext("2d"); if (hctx2) { hctx2.drawImage(img, Math.max(0, pts[27].x - hsize / 2), Math.max(0, pts[27].y - fh * 0.75 - hsize / 2), hsize, hsize, 0, 0, hsize, hsize); const hrc = document.createElement("canvas"); hrc.width = hsize; hrc.height = hsize; const hrctx = hrc.getContext("2d"); if (hrctx) { hrctx.translate(hsize / 2, hsize / 2); hrctx.rotate(Math.PI / 2); hrctx.drawImage(hpc, -hsize / 2, -hsize / 2); hairPatchRef.current = hrc; const dbg = debugPatchCanvasRef.current; if (dbg) { dbg.width = hsize; dbg.height = hsize; const dctx = dbg.getContext("2d"); if (dctx) dctx.drawImage(hrc, 0, 0); } } } setStatus("Face locked - try styles below");
           }
           setDetecting(false);
           drawRef.current();
@@ -210,6 +211,10 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
     <div className="space-y-4">
       <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-black">
         <canvas ref={canvasRef} className="w-full h-auto" />
+        <div className="absolute bottom-3 left-3 border-2 border-red-500">
+          <canvas ref={debugPatchCanvasRef} className="w-16 h-16" style={{ imageRendering: "pixelated" }} />
+          <p className="text-[8px] text-red-400 bg-black/80 text-center">SAMPLE</p>
+        </div>
         <p className="absolute top-3 left-3 text-xs font-bold text-amber-300 bg-black/70 px-3 py-1 rounded-full flex items-center gap-2">
           {detecting && <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
           {status}
