@@ -86,29 +86,20 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       layer.height = canvas.height;
       const lctx = layer.getContext('2d');
       if (lctx) {
-        // 1. Warp the high-density fur texture onto THIS face
         warpBeard(lctx, s as BeardStyleId, pts);
-
-        // 2. Alpha snapshot (to restore after full-canvas blends)
         const snap = document.createElement('canvas');
         snap.width = layer.width;
         snap.height = layer.height;
         snap.getContext('2d')?.drawImage(layer, 0, 0);
-
-        // 3. Photometric colorize: apply hair hue, KEEP fur luminance/shading
         lctx.globalCompositeOperation = 'color';
         lctx.fillStyle = `rgb(${colorRef.current.r},${colorRef.current.g},${colorRef.current.b})`;
         lctx.fillRect(0, 0, layer.width, layer.height);
-
-        // 4. Lighting imprint: beard inherits the photo's shadows/highlights
         if (grayRef.current) {
           lctx.globalCompositeOperation = 'multiply';
           lctx.globalAlpha = 0.45;
           lctx.drawImage(grayRef.current, 0, 0);
           lctx.globalAlpha = 1;
         }
-
-        // 5. Restore fur alpha, then feather the silhouette
         lctx.globalCompositeOperation = 'destination-in';
         lctx.drawImage(snap, 0, 0);
         const mask = document.createElement('canvas');
@@ -116,20 +107,18 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
         mask.height = layer.height;
         const mctx = mask.getContext('2d');
         if (mctx) {
-          mctx.filter = 'blur(6px)';
+          mctx.filter = 'blur(6px);';
           mctx.fillStyle = '#fff';
           zonePath(mctx, pts, s === 'goatee');
           mctx.fill();
           lctx.drawImage(mask, 0, 0);
         }
         lctx.globalCompositeOperation = 'source-over';
-
         ctx.globalAlpha = 0.55 + 0.45 * densityRef.current;
         ctx.drawImage(layer, 0, 0);
         ctx.globalAlpha = 1;
       }
     }
-
     renderHair(ctx, canvas, pts, hairStyleRef.current, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
   };
 
@@ -171,7 +160,12 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       if (!fa) { if (alive) { setStatus('AI not loaded - check connection and refresh.'); setDetecting(false); } return; }
 
       try {
-        const MODEL_SOURCES = ['/models', 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model', 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights']; for (const src of MODEL_SOURCES) { try { await fa.nets.tinyFaceDetector.loadFromUri(src); await fa.nets.faceLandmark68.loadFromUri(src); break; } catch (err) { if (src === MODEL_SOURCES[MODEL_SOURCES.length - 1]) throw err; } }
+        console.log('Loading models from /models...');
+        await fa.nets.tinyFaceDetector.loadFromUri('/models');
+        console.log('Tiny detector loaded');
+        await fa.nets.faceLandmark68.loadFromUri('/models');
+        console.log('Landmarks loaded');
+        
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
         if (det && alive) {
           ptsRef.current = det.landmarks.positions;
@@ -211,7 +205,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
           setDetecting(false);
         }
       } catch (e) {
-        console.error('GroomAI detection error:', e); if (alive) { setStatus('Detection failed: ' + String((e as any)?.message || e).slice(0, 80)); setDetecting(false); }
+        console.error('GroomAI detection error:', e);
+        if (alive) { setStatus('Detection failed: ' + String((e as any)?.message || e).slice(0, 80)); setDetecting(false); }
       }
     };
     img.src = imageUrl;
