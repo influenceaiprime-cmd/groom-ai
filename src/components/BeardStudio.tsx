@@ -1,4 +1,5 @@
 'use client';
+import { analyzeFaceShape } from '@/lib/faceShape';
 
 import { useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/track';
@@ -34,6 +35,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const [density, setDensity] = useState(0.9);
   const [status, setStatus] = useState('Mapping your face...');
   const [detecting, setDetecting] = useState(true);
+  const [faceData, setFaceData] = useState<any>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -288,6 +290,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
         if (det && alive) {
           ptsRef.current = det.landmarks.positions;
+          setFaceData(analyzeFaceShape(det.landmarks.positions));
           const cctx = canvas.getContext('2d', { willReadFrequently: true });
           if (cctx) {
             const pts = det.landmarks.positions;
