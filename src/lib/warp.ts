@@ -11,8 +11,8 @@ const JAW_T: [number, number][] = [
   [0.5, 0.91], [0.62, 0.875], [0.72, 0.8], [0.79, 0.7], [0.825, 0.58], [0.84, 0.46],
 ];
 const INNER_T: [number, number][] = [
-  [0.3, 0.55], [0.33, 0.63], [0.37, 0.7], [0.42, 0.745], [0.46, 0.76],
-  [0.5, 0.765], [0.54, 0.76], [0.58, 0.745], [0.63, 0.7], [0.67, 0.63], [0.7, 0.55],
+  [0.16, 0.46], [0.24, 0.56], [0.32, 0.62], [0.4, 0.655], [0.46, 0.7],
+  [0.5, 0.72], [0.54, 0.7], [0.6, 0.655], [0.68, 0.62], [0.76, 0.56], [0.84, 0.46],
 ];
 const MUST_OUT_T: [number, number][] = [[0.4, 0.635], [0.45, 0.615], [0.5, 0.61], [0.55, 0.615], [0.6, 0.635]];
 const MUST_IN_T: [number, number][] = [[0.42, 0.665], [0.46, 0.655], [0.5, 0.652], [0.54, 0.655], [0.58, 0.665]];
@@ -77,10 +77,12 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
   const U_JAW = Array.from({ length: 11 }, (_, i) => jawAt(i / 10));
 
   // --- Natural cheek line: sideburn -> under-mouth -> sideburn ---
-  const sideL = { x: pts[0].x, y: pts[0].y - faceH * 0.06 };
-  const sideR = { x: pts[16].x, y: pts[16].y - faceH * 0.06 };
-  const underMouth = { x: pts[57].x, y: pts[57].y + faceH * 0.05 };
-  const U_INNER = Array.from({ length: 11 }, (_, i) => quad(sideL, underMouth, sideR, i / 10));
+  const cornerL = { x: pts[48].x - faceH * 0.07, y: pts[48].y - faceH * 0.05 };
+  const cornerR = { x: pts[54].x + faceH * 0.07, y: pts[54].y - faceH * 0.05 };
+  const underMouth = { x: pts[57].x, y: pts[57].y + faceH * 0.04 };
+  const left = Array.from({ length: 6 }, (_, i) => quad(pts[0], cornerL, underMouth, i / 5));
+  const right = Array.from({ length: 5 }, (_, i) => quad(underMouth, cornerR, pts[16], (i + 1) / 5));
+  const U_INNER = [...left, ...right];
 
   // --- Outer silhouette: jaw pushed slightly outward/down ---
   const U_OUTER = U_JAW.map((p, i) => {

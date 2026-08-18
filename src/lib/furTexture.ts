@@ -32,10 +32,10 @@ const noise = (x: number, y: number) =>
 
 interface StyleCfg { strands: number; lenMin: number; lenMax: number; fade: number; mustache: boolean; chinDrop: number; tRange: [number, number] }
 const CFG: Record<BeardStyleId, StyleCfg> = {
-  stubble: { strands: 26000, lenMin: 2, lenMax: 5, fade: 0.9, mustache: true, chinDrop: 0, tRange: [0, 1] },
-  boxed: { strands: 42000, lenMin: 6, lenMax: 12, fade: 0.6, mustache: true, chinDrop: 0.02, tRange: [0, 1] },
-  full: { strands: 60000, lenMin: 10, lenMax: 26, fade: 0.35, mustache: true, chinDrop: 0.08, tRange: [0, 1] },
-  goatee: { strands: 18000, lenMin: 6, lenMax: 14, fade: 0.5, mustache: true, chinDrop: 0.03, tRange: [0.28, 0.72] },
+  stubble: { strands: 26000, lenMin: 3, lenMax: 7, fade: 0.9, mustache: true, chinDrop: 0, tRange: [0, 1] },
+  boxed: { strands: 42000, lenMin: 8, lenMax: 16, fade: 0.6, mustache: true, chinDrop: 0.02, tRange: [0, 1] },
+  full: { strands: 60000, lenMin: 14, lenMax: 30, fade: 0.35, mustache: true, chinDrop: 0.08, tRange: [0, 1] },
+  goatee: { strands: 18000, lenMin: 8, lenMax: 16, fade: 0.5, mustache: true, chinDrop: 0.03, tRange: [0.28, 0.72] },
 };
 
 export function getBeardTexture(style: BeardStyleId): HTMLCanvasElement {
@@ -66,7 +66,7 @@ export function getBeardTexture(style: BeardStyleId): HTMLCanvasElement {
     const edge = Math.sin(t * Math.PI);
     const len = (c.lenMin + Math.random() * (c.lenMax - c.lenMin)) * (0.6 + edge * 0.7) * (0.5 + s * 0.8);
 
-    const base = 90 + Math.random() * 70;
+    const base = 40 + Math.random() * 60;
     ctx.strokeStyle = `rgb(${Math.round(base * 0.75)},${Math.round(base * 0.72)},${Math.round(base * 0.7)})`;
     ctx.globalAlpha = 0.5 + Math.random() * 0.5;
     ctx.lineWidth = 0.7 + Math.random() * 1.1;
@@ -92,7 +92,7 @@ export function getBeardTexture(style: BeardStyleId): HTMLCanvasElement {
       const y = (n.y + (o.y - n.y) * s) * S;
       const ang = Math.PI / 2 + (t - 0.5) * 1.4 + noise(x, y) * 0.2;
       const len = 4 + Math.random() * 8;
-      const base = 90 + Math.random() * 70;
+      const base = 40 + Math.random() * 60;
       ctx.strokeStyle = `rgb(${Math.round(base * 0.75)},${Math.round(base * 0.72)},${Math.round(base * 0.7)})`;
       ctx.globalAlpha = 0.5 + Math.random() * 0.5;
       ctx.lineWidth = 0.7 + Math.random();
