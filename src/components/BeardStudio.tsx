@@ -163,7 +163,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
         console.log('Loading models from /models...');
         await fa.nets.tinyFaceDetector.loadFromUri('/models');
         console.log('Tiny detector loaded');
-        await fa.nets.faceLandmark68.loadFromUri('/models');
+        await (fa.nets.faceLandmark68Net || fa.nets.faceLandmark68).loadFromUri('/models');
         console.log('Landmarks loaded');
         
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
