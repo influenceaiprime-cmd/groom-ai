@@ -1,85 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Outfit:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+:root {
+  --steel-1: #c8d4de;
+  --steel-2: #7d94a8;
+  --steel-3: #3a4652;
+  --ink-0: #0a0d11;
+  --ink-1: #12161c;
+  --ink-2: #1a2029;
+  --hairline: rgba(125, 148, 168, 0.18);
+}
+
 body {
-  font-family: 'Outfit', sans-serif;
-  color: #e9dbd6;
-  background:
-    radial-gradient(1100px 520px at 85% -5%, rgba(183, 110, 121, 0.16), transparent 60%),
-    radial-gradient(900px 480px at 5% 15%, rgba(122, 43, 61, 0.22), transparent 60%),
-    radial-gradient(700px 400px at 50% 110%, rgba(212, 175, 55, 0.07), transparent 60%),
-    #140b0f;
+  font-family: 'Inter', sans-serif;
+  color: var(--steel-1);
+  background: var(--ink-0);
   min-height: 100vh;
 }
 
-h1, h2, h3 {
-  font-family: 'Playfair Display', serif;
-  letter-spacing: -0.02em;
+h1, h2, h3, .display {
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  text-transform: none;
 }
 
-/* ✨ MAGIC 1: liquid-gold shimmering headline */
-h1 span {
-  background-size: 200% auto;
-  animation: shine 3.5s linear infinite;
-}
-@keyframes shine { to { background-position: 200% center; } }
-
-/* ✨ MAGIC 2: twinkling champagne sparkle field over the hero */
-header::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(2px 2px at 18% 28%, #e9c49f 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 72% 18%, #f6ece6 50%, transparent 51%),
-    radial-gradient(2px 2px at 86% 58%, #d4af37 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 38% 72%, #e3a2b4 50%, transparent 51%),
-    radial-gradient(2px 2px at 8% 82%, #d4af37 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 55% 40%, #f6ece6 50%, transparent 51%);
-  animation: twinkle 4s ease-in-out infinite;
-}
-@keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.95; } }
-
-/* ✨ MAGIC 3: floating logo */
-nav img { animation: floaty 5s ease-in-out infinite; }
-@keyframes floaty {
-  0%, 100% { transform: scale(1.35) translateY(0); }
-  50% { transform: scale(1.35) translateY(-2px); }
+.mono, .specs {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.01em;
 }
 
-::selection { background: #b76e79; color: #ffffff; }
+.nameplate-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--steel-2), transparent);
+}
+
+::selection { background: var(--steel-2); color: #0a0d11; }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #140b0f; }
-::-webkit-scrollbar-thumb { background: linear-gradient(#b76e79, #7a2b3d); border-radius: 999px; }
-
-/* 🍷 DARK FEMININE REMAP */
-.bg-white { background: rgba(30, 18, 22, 0.88) !important; backdrop-filter: blur(14px); border: 1px solid rgba(183, 110, 121, 0.22) !important; }
-.bg-gray-50 { background: rgba(255, 255, 255, 0.05) !important; }
-.bg-gray-100 { background: rgba(255, 255, 255, 0.08) !important; }
-.bg-pink-50 { background: rgba(183, 110, 121, 0.14) !important; }
-.bg-pink-200 { background: rgba(183, 110, 121, 0.3) !important; }
-.bg-green-100 { background: rgba(34, 197, 94, 0.15) !important; }
-.bg-yellow-100 { background: rgba(234, 179, 8, 0.15) !important; }
-.bg-red-50 { background: rgba(225, 29, 72, 0.12) !important; }
-.bg-yellow-50 { background: rgba(212, 175, 55, 0.1) !important; }
-.from-pink-100.via-white.to-purple-100 { background: rgba(30, 18, 22, 0.9) !important; border: 1px solid rgba(183, 110, 121, 0.28) !important; backdrop-filter: blur(14px); }
-.text-gray-900 { color: #f6ece6 !important; }
-.text-gray-800 { color: #efdfda !important; }
-.text-gray-700 { color: #ddc9c5 !important; }
-.text-gray-600 { color: #c0a8a6 !important; }
-.text-gray-500 { color: #a68d8d !important; }
-.text-gray-400 { color: #937b7c !important; }
-.text-green-700 { color: #86efac !important; }
-.text-yellow-600 { color: #e9c49f !important; }
-.text-yellow-700 { color: #ecd39a !important; }
-.text-yellow-800 { color: #e9c49f !important; }
-.text-red-600 { color: #f38ba0 !important; }
-.text-red-700 { color: #f0a3b0 !important; }
-.text-pink-700 { color: #e8b4bc !important; }
-.text-pink-600 { color: #d998a4 !important; }
-.border-gray-100, .border-gray-200 { border-color: rgba(255, 255, 255, 0.08) !important; }
-.border-pink-100, .border-pink-200 { border-color: rgba(183, 110, 121, 0.3) !important; }
-.border-red-100 { border-color: rgba(225, 29, 72, 0.25) !important; }
-.border-yellow-100, .border-yellow-200 { border-color: rgba(212, 175, 55, 0.25) !important; }
+::-webkit-scrollbar-track { background: var(--ink-0); }
+::-webkit-scrollbar-thumb { background: var(--steel-3); border-radius: 4px; }
