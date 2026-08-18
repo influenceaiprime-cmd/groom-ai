@@ -33,6 +33,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const [length, setLength] = useState(1);
   const [density, setDensity] = useState(0.85);
   const [status, setStatus] = useState('Mapping your face...');
+  const [showOriginal, setShowOriginal] = useState(false);
+  const showOriginalRef = useRef(false);
   const [detecting, setDetecting] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
@@ -56,6 +58,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
     if (!pts) return;
 
     const s = styleRef.current;
+    if (showOriginalRef.current) return;
     if (s === 'clean') return;
 
     const L = lengthRef.current;
@@ -327,6 +330,18 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
             className="absolute bottom-3 left-0 right-0 mx-auto w-fit text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-full transition-colors"
           >
             🔄 Retry
+          </button>
+        )}
+        {!detecting && !loadFailed && styleRef.current !== "clean" && (
+          <button
+            onMouseDown={() => { showOriginalRef.current = true; setShowOriginal(true); drawRef.current(); }}
+            onMouseUp={() => { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); }}
+            onMouseLeave={() => { if (showOriginalRef.current) { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); } }}
+            onTouchStart={() => { showOriginalRef.current = true; setShowOriginal(true); drawRef.current(); }}
+            onTouchEnd={() => { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); }}
+            className="absolute top-3 right-3 text-[10px] font-bold text-white bg-black/60 hover:bg-black/80 px-3 py-1.5 rounded-full transition-colors select-none"
+          >
+            {showOriginal ? "Original" : "Hold to Compare"}
           </button>
         )}
       </div>
