@@ -68,7 +68,7 @@ export function getBeardTexture(style: BeardStyleId): HTMLCanvasElement {
 
     const base = 40 + Math.random() * 60;
     ctx.strokeStyle = `rgb(${Math.round(base * 0.75)},${Math.round(base * 0.72)},${Math.round(base * 0.7)})`;
-    ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+    ctx.globalAlpha = (0.25 + 0.75 * s) * (0.5 + Math.random() * 0.5);
     ctx.lineWidth = 0.7 + Math.random() * 1.1;
     const ex = x + Math.cos(ang) * len;
     const ey = y + Math.sin(ang) * len;
@@ -94,7 +94,7 @@ export function getBeardTexture(style: BeardStyleId): HTMLCanvasElement {
       const len = 4 + Math.random() * 8;
       const base = 40 + Math.random() * 60;
       ctx.strokeStyle = `rgb(${Math.round(base * 0.75)},${Math.round(base * 0.72)},${Math.round(base * 0.7)})`;
-      ctx.globalAlpha = 0.5 + Math.random() * 0.5;
+      ctx.globalAlpha = (0.25 + 0.75 * s) * (0.5 + Math.random() * 0.5);
       ctx.lineWidth = 0.7 + Math.random();
       ctx.beginPath();
       ctx.moveTo(x, y);

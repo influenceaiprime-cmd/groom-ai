@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/track';
 import { analyzeFaceShape } from '@/lib/faceShape';
 import { HAIR_STYLES, renderHair, coherenceScore } from '@/lib/hairEngine';
-import { warpBeard } from '@/lib/warp';
-import type { BeardStyleId } from '@/lib/furTexture';
+import { renderBeard } from '@/lib/follicleEngine';
+import type { BeardStyleId } from '@/lib/follicleEngine';
 
 interface BeardStudioProps {
   imageUrl: string;
@@ -67,32 +67,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
     const s = styleRef.current;
     if (s !== 'clean') {
-      const layer = document.createElement('canvas');
-      layer.width = canvas.width;
-      layer.height = canvas.height;
-      const lctx = layer.getContext('2d');
-      if (lctx) {
-        warpBeard(lctx, s as BeardStyleId, pts, colorRef.current);
-        const snap = document.createElement('canvas');
-        snap.width = layer.width;
-        snap.height = layer.height;
-        snap.getContext('2d')?.drawImage(layer, 0, 0);
-        lctx.globalCompositeOperation = 'color';
-        lctx.fillStyle = `rgb(${colorRef.current.r},${colorRef.current.g},${colorRef.current.b})`;
-        lctx.fillRect(0, 0, layer.width, layer.height);
-        if (grayRef.current) {
-          lctx.globalCompositeOperation = 'multiply';
-          lctx.globalAlpha = 0.45;
-          lctx.drawImage(grayRef.current, 0, 0);
-          lctx.globalAlpha = 1;
-        }
-        lctx.globalCompositeOperation = 'destination-in';
-        lctx.drawImage(snap, 0, 0);
-        lctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 0.55 + 0.45 * densityRef.current;
-        ctx.drawImage(layer, 0, 0);
-        ctx.globalAlpha = 1;
-      }
+renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
     }
     renderHair(ctx, canvas, pts, hairStyleRef.current, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
   };
