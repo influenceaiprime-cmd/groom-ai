@@ -76,9 +76,11 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
   };
   const U_JAW = Array.from({ length: 11 }, (_, i) => jawAt(i / 10));
 
-  // --- FLIP-SAFE inner curve: always halfway jaw->mouth, never crosses the jaw ---
-  const C = { x: pts[33].x, y: pts[57].y - faceH * 0.06 };
-  const U_INNER = U_JAW.map((p) => ({ x: p.x + (C.x - p.x) * 0.5, y: p.y + (C.y - p.y) * 0.5 }));
+  // --- Natural cheek line: sideburn -> under-mouth -> sideburn ---
+  const sideL = { x: pts[0].x, y: pts[0].y - faceH * 0.06 };
+  const sideR = { x: pts[16].x, y: pts[16].y - faceH * 0.06 };
+  const underMouth = { x: pts[57].x, y: pts[57].y + faceH * 0.05 };
+  const U_INNER = Array.from({ length: 11 }, (_, i) => quad(sideL, underMouth, sideR, i / 10));
 
   // --- Outer silhouette: jaw pushed slightly outward/down ---
   const U_OUTER = U_JAW.map((p, i) => {
@@ -86,15 +88,12 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
     return { x: p.x + (p.x - pts[8].x) * 0.1, y: p.y + (0.02 + 0.05 * Math.sin(t * Math.PI)) * faceH };
   });
 
-  const mOutL = { x: pts[48].x, y: pts[48].y - faceH * 0.06 };
-  const mOutR = { x: pts[54].x, y: pts[54].y - faceH * 0.06 };
-  const philtrum = { x: pts[33].x, y: pts[33].y + faceH * 0.04 };
-  const U_MOUT = Array.from({ length: 5 }, (_, i) => quad(mOutL, philtrum, mOutR, i / 4));
-
-  const mInL = { x: pts[48].x, y: pts[48].y + faceH * 0.01 };
-  const mInR = { x: pts[54].x, y: pts[54].y + faceH * 0.01 };
-  const lipMid = { x: pts[51].x, y: pts[51].y + faceH * 0.02 };
-  const U_MIN = Array.from({ length: 5 }, (_, i) => quad(mInL, lipMid, mInR, i / 4));
+  const mOutL = { x: pts[48].x, y: pts[48].y - faceH * 0.05 };
+  const mOutR = { x: pts[54].x, y: pts[54].y - faceH * 0.05 };
+  const U_MOUT = Array.from({ length: 5 }, (_, i) => ({ x: mOutL.x + (mOutR.x - mOutL.x) * (i / 4), y: mOutL.y + (mOutR.y - mOutL.y) * (i / 4) }));
+  const mInL = { x: pts[48].x + faceH * 0.02, y: pts[51].y + faceH * 0.015 };
+  const mInR = { x: pts[54].x - faceH * 0.02, y: pts[51].y + faceH * 0.015 };
+  const U_MIN = Array.from({ length: 5 }, (_, i) => ({ x: mInL.x + (mInR.x - mInL.x) * (i / 4), y: mInL.y + (mInR.y - mInL.y) * (i / 4) }));
 
   const strips: [ [number, number][], [number, number][], P[], P[] ][] = [
     [INNER_T, JAW_T, U_INNER, U_JAW],
