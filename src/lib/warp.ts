@@ -14,8 +14,6 @@ const INNER_T: [number, number][] = [
   [0.21, 0.7], [0.26, 0.67], [0.32, 0.645], [0.38, 0.64], [0.44, 0.665],
   [0.5, 0.72], [0.56, 0.665], [0.62, 0.64], [0.68, 0.645], [0.74, 0.67], [0.79, 0.7],
 ];
-const MUST_OUT_T: [number, number][] = [[0.4, 0.635], [0.45, 0.615], [0.5, 0.61], [0.55, 0.615], [0.6, 0.635]];
-const MUST_IN_T: [number, number][] = [[0.42, 0.665], [0.46, 0.655], [0.5, 0.652], [0.54, 0.655], [0.58, 0.665]];
 
 const OUTER_T: [number, number][] = JAW_T.map(([x, y], i) => {
   const t = i / (JAW_T.length - 1);
@@ -60,7 +58,7 @@ function drawTri(
   ctx.restore();
 }
 
-export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pts: any[]) {
+export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pts: any[], color?: { r: number; g: number; b: number }) {
   const tex = getBeardTexture(style);
   const S = tex.width;
   const faceH = Math.hypot(pts[8].x - pts[27].x, pts[8].y - pts[27].y);
@@ -90,17 +88,10 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
     return { x: p.x + (p.x - pts[8].x) * 0.1, y: p.y + (0.02 + 0.05 * Math.sin(t * Math.PI)) * faceH };
   });
 
-  const mOutL = { x: pts[48].x, y: pts[48].y - faceH * 0.05 };
-  const mOutR = { x: pts[54].x, y: pts[54].y - faceH * 0.05 };
-  const U_MOUT = Array.from({ length: 5 }, (_, i) => ({ x: mOutL.x + (mOutR.x - mOutL.x) * (i / 4), y: mOutL.y + (mOutR.y - mOutL.y) * (i / 4) }));
-  const mInL = { x: pts[48].x + faceH * 0.02, y: pts[51].y + faceH * 0.015 };
-  const mInR = { x: pts[54].x - faceH * 0.02, y: pts[51].y + faceH * 0.015 };
-  const U_MIN = Array.from({ length: 5 }, (_, i) => ({ x: mInL.x + (mInR.x - mInL.x) * (i / 4), y: mInL.y + (mInR.y - mInL.y) * (i / 4) }));
 
   const strips: [ [number, number][], [number, number][], P[], P[] ][] = [
     [INNER_T, JAW_T, U_INNER, U_JAW],
     [JAW_T, OUTER_T, U_JAW, U_OUTER],
-    [MUST_OUT_T, MUST_IN_T, U_MOUT, U_MIN],
   ];
 
   ctx.save();
@@ -113,5 +104,25 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
       drawTri(ctx, tex, ua[i], ub[i + 1], ua[i + 1], t(ta[i]), t(tb[i + 1]), t(ta[i + 1]));
     }
   }
+  const mc = color || { r: 40, g: 30, b: 22 };
+  const mTopY = pts[33].y + (pts[51].y - pts[33].y) * 0.35;
+  const lipY = pts[51].y;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 350; i++) {
+    const t = Math.random();
+    const x = pts[48].x + (pts[54].x - pts[48].x) * t;
+    const y = mTopY + Math.random() * Math.max(2, lipY - mTopY + faceH * 0.01);
+    const dir = (t - 0.5) * 1.2;
+    const len = faceH * (0.02 + Math.random() * 0.03);
+    const ang = Math.PI / 2 + dir;
+    ctx.globalAlpha = 0.35 + Math.random() * 0.4;
+    ctx.strokeStyle = `rgb(${mc.r},${mc.g},${mc.b})`;
+    ctx.lineWidth = 0.8 + Math.random() * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + Math.cos(ang) * len * 0.5, y + Math.sin(ang) * len * 0.5, x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
   ctx.restore();
 }

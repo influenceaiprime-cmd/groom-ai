@@ -72,7 +72,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       layer.height = canvas.height;
       const lctx = layer.getContext('2d');
       if (lctx) {
-        warpBeard(lctx, s as BeardStyleId, pts);
+        warpBeard(lctx, s as BeardStyleId, pts, colorRef.current);
         const snap = document.createElement('canvas');
         snap.width = layer.width;
         snap.height = layer.height;
