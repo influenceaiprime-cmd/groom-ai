@@ -171,8 +171,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       if (!fa) { if (alive) { setStatus('AI not loaded - check connection and refresh.'); setDetecting(false); } return; }
 
       try {
-        await fa.nets.tinyFaceDetector.loadFromUri('/models');
-        await fa.nets.faceLandmark68.loadFromUri('/models');
+        const MODEL_SOURCES = ['/models', 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model', 'https://cdn.jsdelivr.net/gh/justadudct/face-api.js@master/weights']; for (const src of MODEL_SOURCES) { try { await fa.nets.tinyFaceDetector.loadFromUri(src); await fa.nets.faceLandmark68.loadFromUri(src); break; } catch (err) { if (src === MODEL_SOURCES[MODEL_SOURCES.length - 1]) throw err; } }
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
         if (det && alive) {
           ptsRef.current = det.landmarks.positions;
