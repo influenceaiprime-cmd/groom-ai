@@ -13,6 +13,8 @@ export default function Home() {
   const [paywall, setPaywall] = useState(false);
   const [code, setCode] = useState('');
   const [codeMsg, setCodeMsg] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const config = useConfig();
 
@@ -23,20 +25,35 @@ export default function Home() {
   }, []);
 
   const handleFile = (f: File | null) => {
-    if (!f || !f.type.startsWith('image/')) return;
+    setUploadError('');
+    if (!f) return;
+    if (!f.type.startsWith('image/')) {
+      setUploadError('That doesn\'t look like an image - try a JPG or PNG.');
+      return;
+    }
     const reader = new FileReader();
+    reader.onerror = () => setUploadError('Could not read that file - try again.');
     reader.onload = () => { setImageUrl(reader.result as string); track('upload'); };
     reader.readAsDataURL(f);
   };
 
   const redeem = async () => {
-    const r = await fetch('/api/redeem', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    });
-    if (r.ok) { setIsPro(true); setPaywall(false); setCodeMsg(''); }
-    else setCodeMsg('Invalid code.');
+    if (redeeming) return;
+    setRedeeming(true);
+    setCodeMsg('');
+    try {
+      const r = await fetch('/api/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      if (r.ok) { setIsPro(true); setPaywall(false); setCodeMsg(''); }
+      else setCodeMsg('Invalid code.');
+    } catch {
+      setCodeMsg('Network hiccup - try again.');
+    } finally {
+      setRedeeming(false);
+    }
   };
 
   return (
@@ -86,14 +103,17 @@ export default function Home() {
             )}
 
             {consent && (
-              <div
-                onClick={() => inputRef.current?.click()}
-                className="cursor-pointer rounded-3xl border-2 border-dashed border-amber-500/30 bg-[#111827] p-10 text-center hover:border-amber-500/60 transition-colors"
-              >
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-3xl shadow-lg shadow-amber-600/20">🧔</div>
-                <p className="mt-4 text-lg font-bold text-white">Upload your photo</p>
-                <p className="mt-1 text-sm text-gray-400">Front-facing, decent light. JPG or PNG.</p>
-                <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] || null)} />
+              <div className="space-y-2">
+                <div
+                  onClick={() => inputRef.current?.click()}
+                  className="cursor-pointer rounded-3xl border-2 border-dashed border-amber-500/30 bg-[#111827] p-10 text-center hover:border-amber-500/60 transition-colors"
+                >
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-3xl shadow-lg shadow-amber-600/20">🧔</div>
+                  <p className="mt-4 text-lg font-bold text-white">Upload your photo</p>
+                  <p className="mt-1 text-sm text-gray-400">Front-facing, decent light. JPG or PNG.</p>
+                  <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] || null)} />
+                </div>
+                {uploadError && <p className="text-xs text-red-400 text-center font-semibold">{uploadError}</p>}
               </div>
             )}
 
@@ -131,7 +151,7 @@ export default function Home() {
         {imageUrl && (
           <div className="space-y-4">
             <BeardStudio imageUrl={imageUrl} isPro={isPro} onUnlock={() => setPaywall(true)} />
-            <button onClick={() => setImageUrl(null)} className="text-xs text-gray-500 hover:text-amber-300 font-bold">← Try another photo</button>
+            <button onClick={() => { setImageUrl(null); setUploadError(''); }} className="text-xs text-gray-500 hover:text-amber-300 font-bold">← Try another photo</button>
           </div>
         )}
 
@@ -145,8 +165,8 @@ export default function Home() {
       </div>
 
       {paywall && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4">
-          <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-6 max-w-sm w-full space-y-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4" onClick={() => setPaywall(false)}>
+          <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-6 max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
             <p className="text-xl font-extrabold text-white">🧔 Unlock GroomAI PRO</p>
             <p className="text-xs text-gray-400">All beard styles + Barber Card. $6.99 one-time. No subscription. No auto-renewal.</p>
             {config.whopLink ? (
@@ -158,7 +178,9 @@ export default function Home() {
             )}
             <div className="flex gap-2">
               <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Access code" className="flex-1 bg-black/40 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white" />
-              <button onClick={redeem} className="px-4 rounded-xl bg-gray-700 text-white font-bold text-sm">Redeem</button>
+              <button onClick={redeem} disabled={redeeming} className="px-4 rounded-xl bg-gray-700 text-white font-bold text-sm disabled:opacity-50">
+                {redeeming ? '...' : 'Redeem'}
+              </button>
             </div>
             {codeMsg && <p className="text-xs text-red-400">{codeMsg}</p>}
             <button onClick={() => setPaywall(false)} className="w-full text-xs text-gray-500">Close</button>
