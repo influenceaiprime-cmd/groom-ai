@@ -69,7 +69,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
     const s = styleRef.current;
     if (s !== 'clean') {
-renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.current, colorRef.current, lumRef.current, hairPatchRef.current, grayRef.current);
+renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.current, colorRef.current);
     }
     renderHair(ctx, canvas, pts, hairStyleRef.current, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
   };
