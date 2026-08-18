@@ -45,9 +45,12 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const lengthRef = useRef(length);
   const densityRef = useRef(density);
   const rafRef = useRef<number | null>(null);
+  const lumRef = useRef<{ data: Uint8ClampedArray; w: number; h: number } | null>(null);
 
   // Builds the beard zone path on any given context (used for both the visible
   // clip and the separate feather-mask canvas, so they always match exactly)
+  const getJawPoint = (pts: any[], t: number) => { const idx = t * 16; const i = Math.floor(idx); const frac = idx - i; const p1 = pts[i]; const p2 = pts[Math.min(i + 1, 16)]; return { x: p1.x + (p2.x - p1.x) * frac, y: p1.y + (p2.y - p1.y) * frac }; };
+
   const buildZonePath = (ctx: CanvasRenderingContext2D, pts: any[], isGoatee: boolean) => {
     ctx.beginPath();
     if (isGoatee) {
@@ -135,6 +138,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
         };
 
     const strandCount = Math.floor((isGoatee ? 1600 : 3200) * D * L);
+    const lum = lumRef.current;
+    const lumAt = (x: number, y: number) => { if (!lum) return 128; const lx = Math.min(lum.w - 1, Math.max(0, Math.floor((x / canvas.width) * lum.w))); const ly = Math.min(lum.h - 1, Math.max(0, Math.floor((y / canvas.height) * lum.h))); return lum.data[(ly * lum.w + lx) * 4]; };
 
     lctx.globalAlpha = 1;
     lctx.lineCap = 'round';
@@ -162,9 +167,9 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       const endY = y + Math.sin(angle) * hairLen;
 
       const variance = (Math.random() - 0.5) * 30;
-      const r = Math.max(0, Math.min(255, baseColor.r + variance));
-      const g = Math.max(0, Math.min(255, baseColor.g + variance));
-      const b = Math.max(0, Math.min(255, baseColor.b + variance));
+      const r = Math.max(0, Math.min(255, baseColor.r * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
+      const g = Math.max(0, Math.min(255, baseColor.g * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
+      const b = Math.max(0, Math.min(255, baseColor.b * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
 
       // Slightly higher per-strand opacity now that the base fill is subtler,
       // so strands do the visual work of reading as "hair" rather than a fill.
@@ -216,6 +221,11 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       }
     }
     lctx.restore();
+
+    // Flyaway hairs for organic silhouette
+    const flyaways = Math.floor(60 * D);
+    for (let i = 0; i < flyaways; i++) { const t = Math.random(); const p = getJawPoint(pts, t); const ang = Math.PI / 2 + (Math.random() - 0.5) * 1.2; const fl = (6 + Math.random() * 10) * L; lctx.globalAlpha = 0.3 + Math.random() * 0.3; lctx.strokeStyle = `rgb(${baseColor.r},${baseColor.g},${baseColor.b})`; lctx.lineWidth = 0.8; lctx.beginPath(); lctx.moveTo(p.x, p.y); lctx.lineTo(p.x + Math.cos(ang) * fl, p.y + Math.sin(ang) * fl); lctx.stroke(); }
+    lctx.globalAlpha = 1;
 
     // Feather mask: draw the same zone shape blurred, then use it to soften
     // the layer's edges via destination-in compositing. This is what turns
@@ -304,6 +314,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
             });
             if (n > 0) colorRef.current = { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
           }
+          const lc = document.createElement('canvas'); const lw = 120; const lh = Math.max(1, Math.round((canvas.height / canvas.width) * 120)); lc.width = lw; lc.height = lh; const ltx = lc.getContext('2d', { willReadFrequently: true }); if (ltx) { ltx.filter = 'grayscale(100%)'; ltx.drawImage(img, 0, 0, lw, lh); lumRef.current = { data: ltx.getImageData(0, 0, lw, lh).data, w: lw, h: lh }; }
           setStatus('Face locked - try styles below');
           setDetecting(false);
           drawRef.current();
