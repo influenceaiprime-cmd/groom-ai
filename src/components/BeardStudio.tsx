@@ -52,20 +52,6 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const densityRef = useRef(density);
   const showOriginalRef = useRef(false);
 
-  const zonePath = (ctx: CanvasRenderingContext2D, pts: any[], isGoatee: boolean) => {
-    ctx.beginPath();
-    if (isGoatee) {
-      ctx.ellipse((pts[48].x + pts[54].x) / 2, pts[57].y + 20, Math.abs(pts[48].x - pts[54].x) * 0.9, Math.abs(pts[57].y - pts[8].y) * 1.25, 0, 0, Math.PI * 2);
-    } else {
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i <= 16; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.lineTo(pts[16].x + (pts[16].x - pts[8].x) * 0.12, pts[16].y + 10);
-      ctx.quadraticCurveTo(pts[8].x, pts[8].y + 30, pts[0].x + (pts[0].x - pts[8].x) * 0.12, pts[0].y + 10);
-      ctx.lineTo(pts[54].x, pts[54].y);
-      ctx.quadraticCurveTo(pts[57].x, pts[57].y + 10, pts[48].x, pts[48].y);
-    }
-    ctx.closePath();
-  };
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -102,17 +88,6 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
         }
         lctx.globalCompositeOperation = 'destination-in';
         lctx.drawImage(snap, 0, 0);
-        const mask = document.createElement('canvas');
-        mask.width = layer.width;
-        mask.height = layer.height;
-        const mctx = mask.getContext('2d');
-        if (mctx) {
-          mctx.filter = 'blur(6px);';
-          mctx.fillStyle = '#fff';
-          zonePath(mctx, pts, s === 'goatee');
-          mctx.fill();
-          lctx.drawImage(mask, 0, 0);
-        }
         lctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 0.55 + 0.45 * densityRef.current;
         ctx.drawImage(layer, 0, 0);
