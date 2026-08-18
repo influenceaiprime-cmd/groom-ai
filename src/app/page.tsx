@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import BeardStudio from '@/components/BeardStudio';
+import WhyGroomAI from '@/components/WhyGroomAI';
 import { useConfig } from '@/lib/useConfig';
 import { track } from '@/lib/track';
 
@@ -59,7 +60,10 @@ export default function Home() {
   return (
     <main className="min-h-screen pb-16">
       <header className="max-w-2xl mx-auto px-4 pt-6 pb-4 flex items-center justify-between">
-        <p className="text-xl font-black text-white">🧔 Groom<span className="text-amber-400">AI</span></p>
+        <p className="text-xl font-black text-white flex items-center gap-2">
+          <img src="/favicon.svg" alt="GroomAI" className="w-7 h-7" />
+          Groom<span className="text-amber-400">AI</span>
+        </p>
         <button onClick={() => setPaywall(true)} className="text-xs font-bold text-amber-300 border border-amber-500/40 rounded-full px-3 py-1 hover:bg-amber-500/10">
           {isPro ? 'PRO ✓' : 'Go PRO'}
         </button>
@@ -116,6 +120,8 @@ export default function Home() {
                 {uploadError && <p className="text-xs text-red-400 text-center font-semibold">{uploadError}</p>}
               </div>
             )}
+
+            <WhyGroomAI />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
               <div className="bg-[#111827] rounded-2xl p-5 border border-red-500/20">
