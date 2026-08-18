@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <Script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js" strategy="beforeInteractive" />
       </head>
-      <body className="antialiased bg-[#0b0f14] text-gray-200">
+      <body className="bg-[#090a0f] text-gray-100 antialiased selection:bg-amber-500 selection:text-black" className="antialiased bg-[#0b0f14] text-gray-200">
         {children}
       </body>
     </html>
