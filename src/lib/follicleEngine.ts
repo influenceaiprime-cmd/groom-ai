@@ -6,10 +6,10 @@ type P = { x: number; y: number };
 
 interface Cfg { shadow: number; patchAlpha: number; patchBlur: number; fringeMin: number; fringeMax: number }
 const CFG: Record<BeardStyleId, Cfg> = {
-  stubble: { shadow: 0.3, patchAlpha: 0.3, patchBlur: 3, fringeMin: 2, fringeMax: 5 },
-  boxed: { shadow: 0.35, patchAlpha: 0.6, patchBlur: 1.5, fringeMin: 5, fringeMax: 12 },
-  full: { shadow: 0.4, patchAlpha: 0.75, patchBlur: 1, fringeMin: 10, fringeMax: 20 },
-  goatee: { shadow: 0.35, patchAlpha: 0.6, patchBlur: 1.5, fringeMin: 5, fringeMax: 14 },
+  stubble: { shadow: 0.1, patchAlpha: 0.9, patchBlur: 0.5, fringeMin: 2, fringeMax: 5 },
+  boxed: { shadow: 0.12, patchAlpha: 0.95, patchBlur: 0.5, fringeMin: 5, fringeMax: 12 },
+  full: { shadow: 0.15, patchAlpha: 1, patchBlur: 0.3, fringeMin: 10, fringeMax: 20 },
+  goatee: { shadow: 0.12, patchAlpha: 0.95, patchBlur: 0.5, fringeMin: 5, fringeMax: 14 },
 };
 
 const quad = (a: P, m: P, b: P, t: number): P => {
