@@ -20,14 +20,14 @@ export function analyzeFaceShape(pts: any[]) {
   let advice = 'Oval faces are versatile. Try a Short Boxed or Full Beard to maintain your natural balance.';
   let recommendedStyle = 'boxed';
 
-  if (lengthToWidthRatio < 1.15 && jawToCheekRatio > 0.85) {
-    shape = 'Round';
-    advice = 'Round faces benefit from sharp angles and length. Grow a goatee or a boxed beard with a squared-off chin to elongate your face.';
-    recommendedStyle = 'goatee';
-  } else if (lengthToWidthRatio < 1.2 && jawToCheekRatio > 0.9) {
+  if (lengthToWidthRatio < 1.2 && jawToCheekRatio > 0.9) {
     shape = 'Square';
     advice = 'You have a strong, angular jaw. Soften it with a rounded beard shape, or accentuate it with heavy stubble and a clean neckline.';
     recommendedStyle = 'stubble';
+  } else if (lengthToWidthRatio < 1.15 && jawToCheekRatio > 0.85) {
+    shape = 'Round';
+    advice = 'Round faces benefit from sharp angles and length. Grow a goatee or a boxed beard with a squared-off chin to elongate your face.';
+    recommendedStyle = 'goatee';
   } else if (foreheadWidth < jawWidth * 0.9 && jawWidth < cheekWidth * 0.8) {
     shape = 'Diamond';
     advice = 'Diamond faces have wide cheekbones. Add width to your jawline with a full beard or mutton chops to balance your proportions.';
