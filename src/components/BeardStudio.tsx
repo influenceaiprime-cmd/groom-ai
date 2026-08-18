@@ -31,18 +31,39 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const colorRef = useRef({ r: 60, g: 45, b: 35 });
   const [style, setStyle] = useState('stubble');
   const [length, setLength] = useState(1);
-  const [density, setDensity] = useState(0.85);
+  const [density, setDensity] = useState(0.9);
   const [status, setStatus] = useState('Mapping your face...');
-  const [showOriginal, setShowOriginal] = useState(false);
-  const showOriginalRef = useRef(false);
   const [detecting, setDetecting] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryTick, setRetryTick] = useState(0);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const showOriginalRef = useRef(false);
 
   const styleRef = useRef(style);
   const lengthRef = useRef(length);
   const densityRef = useRef(density);
   const rafRef = useRef<number | null>(null);
+
+  // Builds the beard zone path on any given context (used for both the visible
+  // clip and the separate feather-mask canvas, so they always match exactly)
+  const buildZonePath = (ctx: CanvasRenderingContext2D, pts: any[], isGoatee: boolean) => {
+    ctx.beginPath();
+    if (isGoatee) {
+      ctx.ellipse(
+        (pts[48].x + pts[54].x) / 2,
+        pts[57].y + 20,
+        Math.abs(pts[48].x - pts[54].x) * 0.8,
+        Math.abs(pts[57].y - pts[8].y) * 1.2,
+        0, 0, Math.PI * 2
+      );
+    } else {
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i <= 16; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[54].x, pts[54].y);
+      ctx.quadraticCurveTo(pts[57].x, pts[57].y + 10, pts[48].x, pts[48].y);
+    }
+    ctx.closePath();
+  };
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -56,9 +77,9 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
     if (!pts) return;
+    if (showOriginalRef.current) return;
 
     const s = styleRef.current;
-    if (showOriginalRef.current) return;
     if (s === 'clean') return;
 
     const L = lengthRef.current;
@@ -66,47 +87,37 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
     const baseColor = colorRef.current;
     const isGoatee = s === 'goatee';
 
-    ctx.save();
+    // Render the beard onto an offscreen layer first, so we can feather its
+    // edges with a blurred alpha mask before compositing onto the real photo.
+    // This is what removes the hard-edged "sticker" look.
+    const layer = document.createElement('canvas');
+    layer.width = canvas.width;
+    layer.height = canvas.height;
+    const lctx = layer.getContext('2d');
+    if (!lctx) return;
 
-    // 1. Define the Beard Zone
-    if (isGoatee) {
-      // Isolated chin-patch ellipse - fully replaces the jaw path, not layered on top of it
-      ctx.beginPath();
-      ctx.ellipse(
-        (pts[48].x + pts[54].x) / 2,
-        pts[57].y + 20,
-        Math.abs(pts[48].x - pts[54].x) * 0.8,
-        Math.abs(pts[57].y - pts[8].y) * 1.2,
-        0, 0, Math.PI * 2
-      );
-      ctx.closePath();
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i <= 16; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.lineTo(pts[54].x, pts[54].y);
-      ctx.quadraticCurveTo(pts[57].x, pts[57].y + 10, pts[48].x, pts[48].y);
-      ctx.closePath();
-    }
+    lctx.save();
+    buildZonePath(lctx, pts, isGoatee);
+    lctx.clip();
 
-    // 2. SHADOW PASS
-    ctx.save();
-    ctx.filter = 'blur(8px)';
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.translate(0, 4 * L);
-    ctx.fill();
-    ctx.restore();
+    // Shadow pass - depth cue
+    lctx.save();
+    lctx.filter = 'blur(8px)';
+    lctx.fillStyle = 'rgba(0,0,0,0.3)';
+    lctx.translate(0, 4 * L);
+    buildZonePath(lctx, pts, isGoatee);
+    lctx.fill();
+    lctx.restore();
 
-    // 3. BASE COLOR PASS
-    ctx.globalAlpha = 0.8 * D;
-    ctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
-    ctx.fill();
+    // Base color pass - kept subtle. This used to be the dominant visual
+    // (0.8 alpha), which is what produced the flat gray wedge. Hair strands
+    // should carry the texture; the base is just a faint undertone now.
+    lctx.globalAlpha = 0.28 * D;
+    lctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
+    buildZonePath(lctx, pts, isGoatee);
+    lctx.fill();
 
-    // 4. PROCEDURAL HAIR STRANDS
-    ctx.clip();
-
-    // Tighten the strand-generation bounding box to the actual zone shape,
-    // so goatee doesn't waste strands generating points that just get clipped away
+    // Hair strands
     const bounds = isGoatee
       ? {
           minX: (pts[48].x + pts[54].x) / 2 - Math.abs(pts[48].x - pts[54].x) * 0.8,
@@ -121,10 +132,10 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
           maxY: pts[8].y,
         };
 
-    const strandCount = Math.floor((isGoatee ? 1200 : 2500) * D * L);
+    const strandCount = Math.floor((isGoatee ? 1600 : 3200) * D * L);
 
-    ctx.globalAlpha = 1;
-    ctx.lineCap = 'round';
+    lctx.globalAlpha = 1;
+    lctx.lineCap = 'round';
 
     for (let i = 0; i < strandCount; i++) {
       let x = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
@@ -153,34 +164,40 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       const g = Math.max(0, Math.min(255, baseColor.g + variance));
       const b = Math.max(0, Math.min(255, baseColor.b + variance));
 
-      ctx.strokeStyle = `rgb(${r},${g},${b})`;
-      ctx.lineWidth = 0.8 + Math.random() * 0.8;
+      // Slightly higher per-strand opacity now that the base fill is subtler,
+      // so strands do the visual work of reading as "hair" rather than a fill.
+      lctx.globalAlpha = 0.75 + Math.random() * 0.25;
+      lctx.strokeStyle = `rgb(${r},${g},${b})`;
+      lctx.lineWidth = 0.8 + Math.random() * 0.9;
 
       const cpx = x + Math.cos(angle) * (hairLen * 0.5) + (Math.random() - 0.5) * 2;
       const cpy = y + Math.sin(angle) * (hairLen * 0.5);
 
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(cpx, cpy, endX, endY);
-      ctx.stroke();
+      lctx.beginPath();
+      lctx.moveTo(x, y);
+      lctx.quadraticCurveTo(cpx, cpy, endX, endY);
+      lctx.stroke();
     }
+    lctx.globalAlpha = 1;
 
-    // 5. MUSTACHE PASS (skip for goatee - it's an isolated chin patch)
+    // Mustache pass (skip for goatee - isolated chin patch)
     if (!isGoatee) {
-      ctx.beginPath();
-      ctx.moveTo(pts[48].x, pts[48].y);
-      ctx.quadraticCurveTo(pts[51].x, pts[51].y + 15, pts[54].x, pts[54].y);
-      ctx.lineTo(pts[54].x, pts[54].y - 5);
-      ctx.quadraticCurveTo(pts[51].x, pts[51].y + 5, pts[48].x, pts[48].y - 5);
-      ctx.closePath();
+      lctx.beginPath();
+      lctx.moveTo(pts[48].x, pts[48].y);
+      lctx.quadraticCurveTo(pts[51].x, pts[51].y + 15, pts[54].x, pts[54].y);
+      lctx.lineTo(pts[54].x, pts[54].y - 5);
+      lctx.quadraticCurveTo(pts[51].x, pts[51].y + 5, pts[48].x, pts[48].y - 5);
+      lctx.closePath();
 
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 4;
-      ctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      lctx.shadowColor = 'rgba(0,0,0,0.5)';
+      lctx.shadowBlur = 4;
+      lctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
+      lctx.globalAlpha = 0.5;
+      lctx.fill();
+      lctx.shadowBlur = 0;
+      lctx.globalAlpha = 1;
 
-      const mustacheStrands = Math.floor(400 * D);
+      const mustacheStrands = Math.floor(500 * D);
       for (let i = 0; i < mustacheStrands; i++) {
         let t = Math.random();
         let startX = pts[48].x + (pts[54].x - pts[48].x) * t;
@@ -188,24 +205,42 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
         let mLen = 8 * L;
         let mAngle = Math.PI / 2 + (t - 0.5) * 0.8;
 
-        ctx.strokeStyle = `rgb(${baseColor.r + (Math.random() - 0.5) * 20}, ${baseColor.g}, ${baseColor.b})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(startX + Math.cos(mAngle) * mLen, startY + Math.sin(mAngle) * mLen);
-        ctx.stroke();
+        lctx.strokeStyle = `rgb(${baseColor.r + (Math.random() - 0.5) * 20}, ${baseColor.g}, ${baseColor.b})`;
+        lctx.lineWidth = 1;
+        lctx.beginPath();
+        lctx.moveTo(startX, startY);
+        lctx.lineTo(startX + Math.cos(mAngle) * mLen, startY + Math.sin(mAngle) * mLen);
+        lctx.stroke();
       }
     }
+    lctx.restore();
 
-    ctx.restore();
+    // Feather mask: draw the same zone shape blurred, then use it to soften
+    // the layer's edges via destination-in compositing. This is what turns
+    // the hard "sticker" edge into a soft, blended-into-skin edge.
+    const mask = document.createElement('canvas');
+    mask.width = canvas.width;
+    mask.height = canvas.height;
+    const mctx = mask.getContext('2d');
+    if (mctx) {
+      mctx.filter = 'blur(5px)';
+      mctx.fillStyle = '#fff';
+      buildZonePath(mctx, pts, isGoatee);
+      mctx.fill();
+
+      lctx.globalCompositeOperation = 'destination-in';
+      lctx.filter = 'none';
+      lctx.drawImage(mask, 0, 0);
+      lctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Composite the finished, feathered beard layer onto the real photo
+    ctx.drawImage(layer, 0, 0);
   };
 
   const drawRef = useRef(draw);
   drawRef.current = draw;
 
-  // RAF-coalesced redraw: multiple rapid slider onChange events collapse into
-  // at most one redraw per animation frame, instead of one full 2500-strand
-  // redraw per pixel of slider movement.
   const scheduleDraw = () => {
     if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
@@ -253,7 +288,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
 
         if (det && alive) {
           ptsRef.current = det.landmarks.positions;
-          const cctx = canvas.getContext('2d');
+          const cctx = canvas.getContext('2d', { willReadFrequently: true });
           if (cctx) {
             const pts = det.landmarks.positions;
             const spots = [pts[19], pts[24], pts[0], pts[16]];
@@ -320,7 +355,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
     <div className="space-y-4">
       <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-black">
         <canvas ref={canvasRef} className="w-full h-auto" />
-        <p className="absolute top-3 left-0 right-0 mx-auto w-fit text-center text-xs font-bold text-amber-300 bg-black/70 px-3 py-1 rounded-full flex items-center gap-2 justify-center">
+        <p className="absolute top-3 left-3 text-xs font-bold text-amber-300 bg-black/70 px-3 py-1 rounded-full flex items-center gap-2">
           {detecting && <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
           {status}
         </p>
