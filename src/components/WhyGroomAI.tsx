@@ -1,22 +1,22 @@
 export default function WhyGroomAI() {
   const features = [
-    { icon: '🧔', title: '5 Beard Styles', desc: 'From clean shaven to full beard, mapped to your real jawline.' },
-    { icon: '🎨', title: 'Auto Hair-Color Match', desc: 'AI samples your real hair color - no guessing shades.' },
-    { icon: '📋', title: 'Barber Card Export', desc: 'Exact lengths, cheek line, and neckline your barber can follow.' },
-    { icon: '🔒', title: '100% On-Device', desc: 'Your photo never uploads anywhere. Processed in your browser only.' },
-    { icon: '⚡', title: '10-Second Preview', desc: 'Upload, tap a style, see it - no waiting, no sign-up.' },
-    { icon: '💸', title: 'One-Time $6.99', desc: 'Pay once, unlock everything. No subscription, no auto-renewal.' },
+    { num: '01', title: 'Five beard styles', desc: 'From clean shaven to full beard, mapped to your real jawline.' },
+    { num: '02', title: 'Auto hair-color match', desc: 'AI samples your real hair color - no guessing shades.' },
+    { num: '03', title: 'Barber Card export', desc: 'Exact lengths, cheek line, and neckline your barber can follow.' },
+    { num: '04', title: '100% on-device', desc: 'Your photo never uploads anywhere. Processed in your browser only.' },
+    { num: '05', title: 'Ten-second preview', desc: 'Upload, tap a style, see it - no waiting, no sign-up.' },
+    { num: '06', title: 'One-time $6.99', desc: 'Pay once, unlock everything. No subscription, no auto-renewal.' },
   ];
 
   return (
-    <div className="bg-[#111827] rounded-2xl p-6">
-      <h2 className="text-xl font-black text-white text-center mb-5">Why GroomAI</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    <div className="p-6" style={{ background: 'var(--ink-1)', border: '1px solid var(--hairline)' }}>
+      <p className="text-xs tracking-wider uppercase text-center mb-5" style={{ fontFamily: 'Oswald, sans-serif', color: 'var(--steel-1)' }}>Why GroomAI</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-5">
         {features.map((f) => (
-          <div key={f.title} className="text-center space-y-1">
-            <p className="text-3xl">{f.icon}</p>
-            <p className="text-xs font-extrabold text-amber-300">{f.title}</p>
-            <p className="text-[11px] text-gray-400 leading-snug">{f.desc}</p>
+          <div key={f.num} className="text-left">
+            <p className="mono text-[10px]" style={{ color: 'var(--steel-3)' }}>{f.num}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--steel-1)' }}>{f.title}</p>
+            <p className="text-[11px] mt-1 leading-snug" style={{ color: 'var(--steel-3)' }}>{f.desc}</p>
           </div>
         ))}
       </div>
