@@ -70,7 +70,7 @@ export default function Home() {
           <>
             <div className="text-center space-y-3 pt-4">
               <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                ChatGPT can tell you to grow a beard.<br />
+                Free AI can tell you to grow a beard.<br />
                 <span className="text-amber-400">We show you how it looks on YOUR face.</span>
               </h1>
               <p className="text-sm text-gray-400">
@@ -119,7 +119,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
               <div className="bg-[#111827] rounded-2xl p-5 border border-red-500/20">
-                <p className="font-extrabold text-red-400">Asking free AI</p>
+                <p className="font-extrabold text-red-400">Asking Free AI</p>
                 <ul className="mt-2 space-y-1 text-xs text-gray-400">
                   <li>❌ Paragraphs of generic advice</li>
                   <li>❌ No visual on YOUR face</li>
