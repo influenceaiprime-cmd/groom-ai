@@ -19,7 +19,7 @@ const MUST_IN_T: [number, number][] = [[0.42, 0.665], [0.46, 0.655], [0.5, 0.652
 
 const OUTER_T: [number, number][] = JAW_T.map(([x, y], i) => {
   const t = i / (JAW_T.length - 1);
-  return [x + (x - 0.5) * 0.12, y + 0.03 + 0.06 * Math.sin(t * Math.PI)];
+  return [x + (x - 0.5) * 0.1, y + 0.02 + 0.05 * Math.sin(t * Math.PI)];
 });
 
 const quad = (a: P, m: P, b: P, t: number): P => {
@@ -65,7 +65,7 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
   const S = tex.width;
   const faceH = Math.hypot(pts[8].x - pts[27].x, pts[8].y - pts[27].y);
 
-  // --- User-space curves from 68 landmarks ---
+  // --- User jaw curve from 68 landmarks ---
   const jawAt = (t: number): P => {
     const idx = t * 16;
     const i = Math.floor(idx);
@@ -75,15 +75,16 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
     return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
   };
   const U_JAW = Array.from({ length: 11 }, (_, i) => jawAt(i / 10));
+
+  // --- FLIP-SAFE inner curve: always halfway jaw->mouth, never crosses the jaw ---
+  const C = { x: pts[33].x, y: pts[57].y - faceH * 0.06 };
+  const U_INNER = U_JAW.map((p) => ({ x: p.x + (C.x - p.x) * 0.5, y: p.y + (C.y - p.y) * 0.5 }));
+
+  // --- Outer silhouette: jaw pushed slightly outward/down ---
   const U_OUTER = U_JAW.map((p, i) => {
     const t = i / 10;
-    return { x: p.x + (p.x - pts[8].x) * 0.12, y: p.y + (0.03 + 0.06 * Math.sin(t * Math.PI)) * faceH };
+    return { x: p.x + (p.x - pts[8].x) * 0.1, y: p.y + (0.02 + 0.05 * Math.sin(t * Math.PI)) * faceH };
   });
-
-  const innerL = { x: (pts[2].x + pts[48].x) / 2, y: (pts[2].y + pts[48].y) / 2 };
-  const innerR = { x: (pts[14].x + pts[54].x) / 2, y: (pts[14].y + pts[54].y) / 2 };
-  const underMouth = { x: pts[57].x, y: pts[57].y + faceH * 0.05 };
-  const U_INNER = Array.from({ length: 11 }, (_, i) => quad(innerL, underMouth, innerR, i / 10));
 
   const mOutL = { x: pts[48].x, y: pts[48].y - faceH * 0.06 };
   const mOutR = { x: pts[54].x, y: pts[54].y - faceH * 0.06 };
@@ -95,7 +96,6 @@ export function warpBeard(ctx: CanvasRenderingContext2D, style: BeardStyleId, pt
   const lipMid = { x: pts[51].x, y: pts[51].y + faceH * 0.02 };
   const U_MIN = Array.from({ length: 5 }, (_, i) => quad(mInL, lipMid, mInR, i / 4));
 
-  // --- Triangle strips: [templateA, templateB, userA, userB] ---
   const strips: [ [number, number][], [number, number][], P[], P[] ][] = [
     [INNER_T, JAW_T, U_INNER, U_JAW],
     [JAW_T, OUTER_T, U_JAW, U_OUTER],
