@@ -1,9 +1,11 @@
 'use client';
-import { analyzeFaceShape } from '@/lib/faceShape';
-import { HAIR_STYLES, renderHair, coherenceScore } from '@/lib/hairEngine';
 
 import { useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/track';
+import { analyzeFaceShape } from '@/lib/faceShape';
+import { HAIR_STYLES, renderHair, coherenceScore } from '@/lib/hairEngine';
+import { warpBeard } from '@/lib/warp';
+import type { BeardStyleId } from '@/lib/furTexture';
 
 interface BeardStudioProps {
   imageUrl: string;
@@ -31,42 +33,34 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ptsRef = useRef<any[] | null>(null);
   const colorRef = useRef({ r: 60, g: 45, b: 35 });
+  const lumRef = useRef<{ data: Uint8ClampedArray; w: number; h: number } | null>(null);
+  const grayRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+
   const [style, setStyle] = useState('stubble');
+  const [hairStyle, setHairStyle] = useState('none');
   const [length, setLength] = useState(1);
   const [density, setDensity] = useState(0.9);
   const [status, setStatus] = useState('Mapping your face...');
   const [detecting, setDetecting] = useState(true);
   const [faceData, setFaceData] = useState<any>(null);
-  const [hairStyle, setHairStyle] = useState("none");
-  const hairStyleRef = useRef("none");
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [retryTick, setRetryTick] = useState(0);
   const [showOriginal, setShowOriginal] = useState(false);
-  const showOriginalRef = useRef(false);
 
   const styleRef = useRef(style);
+  const hairStyleRef = useRef(hairStyle);
   const lengthRef = useRef(length);
   const densityRef = useRef(density);
-  const rafRef = useRef<number | null>(null);
-  const lumRef = useRef<{ data: Uint8ClampedArray; w: number; h: number } | null>(null);
+  const showOriginalRef = useRef(false);
 
-  // Builds the beard zone path on any given context (used for both the visible
-  // clip and the separate feather-mask canvas, so they always match exactly)
-  const getJawPoint = (pts: any[], t: number) => { const idx = t * 16; const i = Math.floor(idx); const frac = idx - i; const p1 = pts[i]; const p2 = pts[Math.min(i + 1, 16)]; return { x: p1.x + (p2.x - p1.x) * frac, y: p1.y + (p2.y - p1.y) * frac }; };
-
-  const buildZonePath = (ctx: CanvasRenderingContext2D, pts: any[], isGoatee: boolean) => {
+  const zonePath = (ctx: CanvasRenderingContext2D, pts: any[], isGoatee: boolean) => {
     ctx.beginPath();
     if (isGoatee) {
-      ctx.ellipse(
-        (pts[48].x + pts[54].x) / 2,
-        pts[57].y + 20,
-        Math.abs(pts[48].x - pts[54].x) * 0.8,
-        Math.abs(pts[57].y - pts[8].y) * 1.2,
-        0, 0, Math.PI * 2
-      );
+      ctx.ellipse((pts[48].x + pts[54].x) / 2, pts[57].y + 20, Math.abs(pts[48].x - pts[54].x) * 0.9, Math.abs(pts[57].y - pts[8].y) * 1.25, 0, 0, Math.PI * 2);
     } else {
       ctx.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i <= 16; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[16].x + (pts[16].x - pts[8].x) * 0.12, pts[16].y + 10);
+      ctx.quadraticCurveTo(pts[8].x, pts[8].y + 30, pts[0].x + (pts[0].x - pts[8].x) * 0.12, pts[0].y + 10);
       ctx.lineTo(pts[54].x, pts[54].y);
       ctx.quadraticCurveTo(pts[57].x, pts[57].y + 10, pts[48].x, pts[48].y);
     }
@@ -78,183 +72,67 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
     const ctx = canvas ? canvas.getContext('2d') : null;
     const pts = ptsRef.current;
     if (!canvas || !ctx) return;
-
     const img = (canvas as any).__img as HTMLImageElement | undefined;
     if (img) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     }
-    if (!pts) return;
-    if (showOriginalRef.current) return;
+    if (!pts || showOriginalRef.current) return;
 
     const s = styleRef.current;
-    if (s === 'clean') return;
+    if (s !== 'clean') {
+      const layer = document.createElement('canvas');
+      layer.width = canvas.width;
+      layer.height = canvas.height;
+      const lctx = layer.getContext('2d');
+      if (lctx) {
+        // 1. Warp the high-density fur texture onto THIS face
+        warpBeard(lctx, s as BeardStyleId, pts);
 
-    const L = lengthRef.current;
-    const D = densityRef.current;
-    const baseColor = colorRef.current;
-    const isGoatee = s === 'goatee';
+        // 2. Alpha snapshot (to restore after full-canvas blends)
+        const snap = document.createElement('canvas');
+        snap.width = layer.width;
+        snap.height = layer.height;
+        snap.getContext('2d')?.drawImage(layer, 0, 0);
 
-    // Render the beard onto an offscreen layer first, so we can feather its
-    // edges with a blurred alpha mask before compositing onto the real photo.
-    // This is what removes the hard-edged "sticker" look.
-    const layer = document.createElement('canvas');
-    layer.width = canvas.width;
-    layer.height = canvas.height;
-    const lctx = layer.getContext('2d');
-    if (!lctx) return;
+        // 3. Photometric colorize: apply hair hue, KEEP fur luminance/shading
+        lctx.globalCompositeOperation = 'color';
+        lctx.fillStyle = `rgb(${colorRef.current.r},${colorRef.current.g},${colorRef.current.b})`;
+        lctx.fillRect(0, 0, layer.width, layer.height);
 
-    lctx.save();
-    buildZonePath(lctx, pts, isGoatee);
-    lctx.clip();
-
-    // Shadow pass - depth cue
-    lctx.save();
-    lctx.filter = 'blur(8px)';
-    lctx.fillStyle = 'rgba(0,0,0,0.3)';
-    lctx.translate(0, 4 * L);
-    buildZonePath(lctx, pts, isGoatee);
-    lctx.fill();
-    lctx.restore();
-
-    // Base color pass - kept subtle. This used to be the dominant visual
-    // (0.8 alpha), which is what produced the flat gray wedge. Hair strands
-    // should carry the texture; the base is just a faint undertone now.
-    lctx.globalAlpha = 0.28 * D;
-    lctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
-    buildZonePath(lctx, pts, isGoatee);
-    lctx.fill();
-
-    // Hair strands
-    const bounds = isGoatee
-      ? {
-          minX: (pts[48].x + pts[54].x) / 2 - Math.abs(pts[48].x - pts[54].x) * 0.8,
-          maxX: (pts[48].x + pts[54].x) / 2 + Math.abs(pts[48].x - pts[54].x) * 0.8,
-          minY: pts[57].y + 20 - Math.abs(pts[57].y - pts[8].y) * 1.2,
-          maxY: pts[57].y + 20 + Math.abs(pts[57].y - pts[8].y) * 1.2,
+        // 4. Lighting imprint: beard inherits the photo's shadows/highlights
+        if (grayRef.current) {
+          lctx.globalCompositeOperation = 'multiply';
+          lctx.globalAlpha = 0.45;
+          lctx.drawImage(grayRef.current, 0, 0);
+          lctx.globalAlpha = 1;
         }
-      : {
-          minX: Math.min(...pts.slice(0, 17).map((p: any) => p.x), pts[48].x),
-          maxX: Math.max(...pts.slice(0, 17).map((p: any) => p.x), pts[54].x),
-          minY: pts[57].y,
-          maxY: pts[8].y,
-        };
 
-    const strandCount = Math.floor((isGoatee ? 1600 : 3200) * D * L);
-    const lum = lumRef.current;
-    const lumAt = (x: number, y: number) => { if (!lum) return 128; const lx = Math.min(lum.w - 1, Math.max(0, Math.floor((x / canvas.width) * lum.w))); const ly = Math.min(lum.h - 1, Math.max(0, Math.floor((y / canvas.height) * lum.h))); return lum.data[(ly * lum.w + lx) * 4]; };
+        // 5. Restore fur alpha, then feather the silhouette
+        lctx.globalCompositeOperation = 'destination-in';
+        lctx.drawImage(snap, 0, 0);
+        const mask = document.createElement('canvas');
+        mask.width = layer.width;
+        mask.height = layer.height;
+        const mctx = mask.getContext('2d');
+        if (mctx) {
+          mctx.filter = 'blur(6px)';
+          mctx.fillStyle = '#fff';
+          zonePath(mctx, pts, s === 'goatee');
+          mctx.fill();
+          lctx.drawImage(mask, 0, 0);
+        }
+        lctx.globalCompositeOperation = 'source-over';
 
-    lctx.globalAlpha = 1;
-    lctx.lineCap = 'round';
-
-    for (let i = 0; i < strandCount; i++) {
-      let x = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
-      let y = bounds.minY + Math.random() * (bounds.maxY - bounds.minY);
-
-      const distFromChin = Math.hypot(x - pts[8].x, y - pts[8].y);
-      const maxDist = Math.hypot(pts[0].x - pts[8].x, pts[0].y - pts[8].y);
-      const lengthMultiplier = 0.4 + (distFromChin / maxDist) * 0.6;
-
-      let hairLen = 4;
-      if (s === 'stubble') hairLen = 3 * L;
-      else if (s === 'boxed') hairLen = 8 * L * lengthMultiplier;
-      else if (s === 'full') hairLen = 16 * L * lengthMultiplier;
-      else if (s === 'goatee') hairLen = 10 * L * lengthMultiplier;
-
-      const faceCenterX = (pts[0].x + pts[16].x) / 2;
-      const angleOut = Math.atan2(y - pts[27].y, x - faceCenterX);
-      const angleDown = Math.PI / 2;
-      const angle = angleDown * 0.7 + angleOut * 0.3 + (Math.random() - 0.5) * 0.4;
-
-      const endX = x + Math.cos(angle) * hairLen;
-      const endY = y + Math.sin(angle) * hairLen;
-
-      const variance = (Math.random() - 0.5) * 30;
-      const r = Math.max(0, Math.min(255, baseColor.r * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
-      const g = Math.max(0, Math.min(255, baseColor.g * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
-      const b = Math.max(0, Math.min(255, baseColor.b * (0.6 + (lumAt(x, y) / 255) * 0.8) + variance));
-
-      // Slightly higher per-strand opacity now that the base fill is subtler,
-      // so strands do the visual work of reading as "hair" rather than a fill.
-      lctx.globalAlpha = 0.75 + Math.random() * 0.25;
-      lctx.strokeStyle = `rgb(${r},${g},${b})`;
-      lctx.lineWidth = 0.8 + Math.random() * 0.9;
-
-      const cpx = x + Math.cos(angle) * (hairLen * 0.5) + (Math.random() - 0.5) * 2;
-      const cpy = y + Math.sin(angle) * (hairLen * 0.5);
-
-      lctx.beginPath();
-      lctx.moveTo(x, y);
-      lctx.quadraticCurveTo(cpx, cpy, endX, endY);
-      lctx.stroke();
-    }
-    lctx.globalAlpha = 1;
-
-    // Mustache pass (skip for goatee - isolated chin patch)
-    if (!isGoatee) {
-      lctx.beginPath();
-      lctx.moveTo(pts[48].x, pts[48].y);
-      lctx.quadraticCurveTo(pts[51].x, pts[51].y + 15, pts[54].x, pts[54].y);
-      lctx.lineTo(pts[54].x, pts[54].y - 5);
-      lctx.quadraticCurveTo(pts[51].x, pts[51].y + 5, pts[48].x, pts[48].y - 5);
-      lctx.closePath();
-
-      lctx.shadowColor = 'rgba(0,0,0,0.5)';
-      lctx.shadowBlur = 4;
-      lctx.fillStyle = `rgb(${baseColor.r}, ${baseColor.g}, ${baseColor.b})`;
-      lctx.globalAlpha = 0.5;
-      lctx.fill();
-      lctx.shadowBlur = 0;
-      lctx.globalAlpha = 1;
-
-      const mustacheStrands = Math.floor(500 * D);
-      for (let i = 0; i < mustacheStrands; i++) {
-        let t = Math.random();
-        let startX = pts[48].x + (pts[54].x - pts[48].x) * t;
-        let startY = pts[51].y + 5;
-        let mLen = 8 * L;
-        let mAngle = Math.PI / 2 + (t - 0.5) * 0.8;
-
-        lctx.strokeStyle = `rgb(${baseColor.r + (Math.random() - 0.5) * 20}, ${baseColor.g}, ${baseColor.b})`;
-        lctx.lineWidth = 1;
-        lctx.beginPath();
-        lctx.moveTo(startX, startY);
-        lctx.lineTo(startX + Math.cos(mAngle) * mLen, startY + Math.sin(mAngle) * mLen);
-        lctx.stroke();
+        ctx.globalAlpha = 0.55 + 0.45 * densityRef.current;
+        ctx.drawImage(layer, 0, 0);
+        ctx.globalAlpha = 1;
       }
     }
-    lctx.restore();
 
-    // Flyaway hairs for organic silhouette
-    const flyaways = Math.floor(60 * D);
-    for (let i = 0; i < flyaways; i++) { const t = Math.random(); const p = getJawPoint(pts, t); const ang = Math.PI / 2 + (Math.random() - 0.5) * 1.2; const fl = (6 + Math.random() * 10) * L; lctx.globalAlpha = 0.3 + Math.random() * 0.3; lctx.strokeStyle = `rgb(${baseColor.r},${baseColor.g},${baseColor.b})`; lctx.lineWidth = 0.8; lctx.beginPath(); lctx.moveTo(p.x, p.y); lctx.lineTo(p.x + Math.cos(ang) * fl, p.y + Math.sin(ang) * fl); lctx.stroke(); }
-    lctx.globalAlpha = 1;
-
-    // Feather mask: draw the same zone shape blurred, then use it to soften
-    // the layer's edges via destination-in compositing. This is what turns
-    // the hard "sticker" edge into a soft, blended-into-skin edge.
-    const mask = document.createElement('canvas');
-    mask.width = canvas.width;
-    mask.height = canvas.height;
-    const mctx = mask.getContext('2d');
-    if (mctx) {
-      mctx.filter = 'blur(5px)';
-      mctx.fillStyle = '#fff';
-      buildZonePath(mctx, pts, isGoatee);
-      mctx.fill();
-
-      lctx.globalCompositeOperation = 'destination-in';
-      lctx.filter = 'none';
-      lctx.drawImage(mask, 0, 0);
-      lctx.globalCompositeOperation = 'source-over';
-    }
-
-    // Composite the finished, feathered beard layer onto the real photo
-    ctx.drawImage(layer, 0, 0);
     renderHair(ctx, canvas, pts, hairStyleRef.current, lengthRef.current, densityRef.current, colorRef.current, lumRef.current);
   };
 
-  useEffect(() => { hairStyleRef.current = hairStyle; drawRef.current(); }, [hairStyle]);
   const drawRef = useRef(draw);
   drawRef.current = draw;
 
@@ -267,15 +145,12 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
   };
 
   useEffect(() => { styleRef.current = style; scheduleDraw(); }, [style]);
+  useEffect(() => { hairStyleRef.current = hairStyle; scheduleDraw(); }, [hairStyle]);
   useEffect(() => { lengthRef.current = length; scheduleDraw(); }, [length]);
   useEffect(() => { densityRef.current = density; scheduleDraw(); }, [density]);
 
   useEffect(() => {
     let alive = true;
-    setDetecting(true);
-    setLoadFailed(false);
-    setStatus('Mapping your face...');
-
     const img = new Image();
     img.onload = async () => {
       const canvas = canvasRef.current;
@@ -288,24 +163,21 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       (canvas as any).__img = img;
 
-      let fa: any = (window as any).faceApi || (window as any).faceapi;
+      let fa: any = null;
       for (let i = 0; i < 20 && !fa; i++) {
-        await new Promise((r) => setTimeout(r, 500));
         fa = (window as any).faceApi || (window as any).faceapi;
+        if (!fa) await new Promise((r) => setTimeout(r, 500));
       }
-      if (!fa) {
-        if (alive) { setStatus('AI not loaded - check your connection.'); setDetecting(false); setLoadFailed(true); }
-        return;
-      }
+      if (!fa) { if (alive) { setStatus('AI not loaded - check connection and refresh.'); setDetecting(false); } return; }
 
       try {
         await fa.nets.tinyFaceDetector.loadFromUri('/models');
-        await fa.nets.faceLandmark68Net.loadFromUri('/models');
+        await fa.nets.faceLandmark68.loadFromUri('/models');
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
-
         if (det && alive) {
           ptsRef.current = det.landmarks.positions;
           setFaceData(analyzeFaceShape(det.landmarks.positions));
+
           const cctx = canvas.getContext('2d', { willReadFrequently: true });
           if (cctx) {
             const pts = det.landmarks.positions;
@@ -313,56 +185,78 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
             let r = 0, g = 0, b = 0, n = 0;
             spots.forEach((p: any) => {
               const d = cctx.getImageData(Math.max(0, Math.floor(p.x) - 4), Math.max(0, Math.floor(p.y) - 10), 8, 8).data;
-              for (let i = 0; i < d.length; i += 4) {
-                if (d[i + 3] > 128) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-              }
+              for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 128) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } }
             });
             if (n > 0) colorRef.current = { r: Math.round(r / n), g: Math.round(g / n), b: Math.round(b / n) };
+
+            const lw = 120;
+            const lh = Math.max(1, Math.round((canvas.height / canvas.width) * 120));
+            const lc = document.createElement('canvas');
+            lc.width = lw; lc.height = lh;
+            const ltx = lc.getContext('2d', { willReadFrequently: true });
+            if (ltx) {
+              ltx.filter = 'grayscale(100%)';
+              ltx.drawImage(img, 0, 0, lw, lh);
+              lumRef.current = { data: ltx.getImageData(0, 0, lw, lh).data, w: lw, h: lh };
+            }
+            const gc = document.createElement('canvas');
+            gc.width = canvas.width; gc.height = canvas.height;
+            const gtx = gc.getContext('2d');
+            if (gtx) { gtx.filter = 'grayscale(100%)'; gtx.drawImage(img, 0, 0); grayRef.current = gc; }
           }
-          const lc = document.createElement('canvas'); const lw = 120; const lh = Math.max(1, Math.round((canvas.height / canvas.width) * 120)); lc.width = lw; lc.height = lh; const ltx = lc.getContext('2d', { willReadFrequently: true }); if (ltx) { ltx.filter = 'grayscale(100%)'; ltx.drawImage(img, 0, 0, lw, lh); lumRef.current = { data: ltx.getImageData(0, 0, lw, lh).data, w: lw, h: lh }; }
           setStatus('Face locked - try styles below');
           setDetecting(false);
           drawRef.current();
         } else if (alive) {
           setStatus('No face found - use a clear, front-facing photo.');
           setDetecting(false);
-          setLoadFailed(true);
         }
       } catch (e) {
-        console.error('GroomAI detection error:', e);
-        if (alive) { setStatus('Detection failed - try better lighting.'); setDetecting(false); setLoadFailed(true); }
+        if (alive) { setStatus('Detection failed - try better lighting.'); setDetecting(false); }
       }
     };
     img.src = imageUrl;
     return () => { alive = false; };
-  }, [imageUrl, retryTick]);
+  }, [imageUrl]);
+
+  const holdCompare = (on: boolean) => {
+    showOriginalRef.current = on;
+    setShowOriginal(on);
+    drawRef.current();
+  };
 
   const downloadCard = () => {
     if (!isPro) { onUnlock && onUnlock(); return; }
     const canvas = canvasRef.current;
     if (!canvas) return;
     const card = document.createElement('canvas');
-    card.width = 1080; card.height = 1350;
+    card.width = 1080;
+    card.height = 1350;
     const ctx = card.getContext('2d');
     if (!ctx) return;
-
-    ctx.fillStyle = '#0b0f14'; ctx.fillRect(0, 0, 1080, 1350);
-    ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 56px sans-serif';
+    ctx.fillStyle = '#0b0f14';
+    ctx.fillRect(0, 0, 1080, 1350);
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 56px sans-serif';
     ctx.fillText('GROOMAI BARBER CARD', 60, 100);
     ctx.drawImage(canvas, 190, 150, 700, 700);
-    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4; ctx.strokeRect(190, 150, 700, 700);
-
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(190, 150, 700, 700);
     const sp = SPECS[styleRef.current];
-    const name = STYLES.find((s) => s.id === styleRef.current)?.name.toUpperCase() || '';
-    ctx.fillStyle = '#e5e7eb'; ctx.font = 'bold 40px sans-serif'; ctx.fillText('STYLE: ' + name, 60, 950);
-    ctx.font = '30px sans-serif'; ctx.fillStyle = '#9ca3af';
+    const name = STYLES.find((x) => x.id === styleRef.current)?.name.toUpperCase() || '';
+    ctx.fillStyle = '#e5e7eb';
+    ctx.font = 'bold 40px sans-serif';
+    ctx.fillText('STYLE: ' + name, 60, 950);
+    ctx.font = '30px sans-serif';
+    ctx.fillStyle = '#9ca3af';
     ctx.fillText('Length: ' + sp.length, 60, 1010);
     ctx.fillText('Cheek line: ' + sp.cheek, 60, 1060);
     ctx.fillText('Neckline: ' + sp.neck, 60, 1110);
     ctx.fillText('Notes: ' + sp.notes, 60, 1160);
-    ctx.fillStyle = '#6b7280'; ctx.font = '22px sans-serif';
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '22px sans-serif';
     ctx.fillText('Generated by GroomAI - your face never left your device.', 60, 1290);
-
     const a = document.createElement('a');
     a.download = 'groomai-barber-card.png';
     a.href = card.toDataURL('image/png');
@@ -378,47 +272,63 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
           {detecting && <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
           {status}
         </p>
-        {loadFailed && (
-          <button
-            onClick={() => setRetryTick((t) => t + 1)}
-            className="absolute bottom-3 left-0 right-0 mx-auto w-fit text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-full transition-colors"
-          >
-            🔄 Retry
-          </button>
+        {faceData && faceData.shape !== 'Unknown' && (
+          <div className="absolute top-3 right-3 text-left bg-black/80 border border-amber-500/40 rounded-xl p-2 max-w-[200px]">
+            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Face Shape</p>
+            <p className="text-sm text-white font-black">{faceData.shape}</p>
+            <p className="text-[10px] text-gray-300 mt-1 leading-tight">{faceData.advice}</p>
+          </div>
         )}
-        {!detecting && !loadFailed && styleRef.current !== "clean" && (
-          <button
-            onMouseDown={() => { showOriginalRef.current = true; setShowOriginal(true); drawRef.current(); }}
-            onMouseUp={() => { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); }}
-            onMouseLeave={() => { if (showOriginalRef.current) { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); } }}
-            onTouchStart={() => { showOriginalRef.current = true; setShowOriginal(true); drawRef.current(); }}
-            onTouchEnd={() => { showOriginalRef.current = false; setShowOriginal(false); drawRef.current(); }}
-            className="absolute top-3 right-3 text-[10px] font-bold text-white bg-black/60 hover:bg-black/80 px-3 py-1.5 rounded-full transition-colors select-none"
-          >
-            {showOriginal ? "Original" : "Hold to Compare"}
-          </button>
-        )}
+        <button
+          onPointerDown={() => holdCompare(true)}
+          onPointerUp={() => holdCompare(false)}
+          onPointerLeave={() => holdCompare(false)}
+          className="absolute bottom-3 right-3 text-[11px] font-bold text-white bg-black/70 border border-gray-600 rounded-full px-3 py-1 select-none touch-none"
+        >
+          {showOriginal ? 'Original' : 'Hold to compare'}
+        </button>
       </div>
+
       <div className="bg-[#111827] rounded-2xl p-4 space-y-3">
         <div className="flex flex-wrap justify-center gap-2">
           {STYLES.map((st) => {
             const locked = st.pro && !isPro;
             return (
-              <button key={st.id} onClick={() => { if (locked) { onUnlock && onUnlock(); return; } setStyle(st.id); track('beard_style', { style: st.id }); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${style === st.id ? 'border-amber-500 text-amber-300 bg-amber-500/10' : 'border-gray-700 text-gray-400'} ${locked ? 'opacity-60' : ''}`}>
+              <button
+                key={st.id}
+                onClick={() => { if (locked) { onUnlock && onUnlock(); return; } setStyle(st.id); track('beard_style', { style: st.id }); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${style === st.id ? 'border-amber-500 text-amber-300 bg-amber-500/10' : 'border-gray-700 text-gray-400'} ${locked ? 'opacity-60' : ''}`}
+              >
                 {locked ? '🔒 ' : '🧔 '}{st.name}
               </button>
             );
           })}
         </div>
-        <div className="flex flex-wrap justify-center gap-2">{HAIR_STYLES.map((hs) => { const locked = hs.pro && !isPro; return (<button key={hs.id} onClick={() => { if (locked) { onUnlock && onUnlock(); return; } setHairStyle(hs.id); track("hair_style", { style: hs.id }); }} className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${hairStyle === hs.id ? "border-amber-500 text-amber-300 bg-amber-500/10" : "border-gray-700 text-gray-400"} ${locked ? "opacity-60" : ""}`}>{locked ? "🔒 " : "💈 "}{hs.name}</button>); })}</div>
-        {hairStyle !== "none" && style !== "clean" && (<p className="text-center text-[11px] font-bold text-amber-300">Style Coherence: {coherenceScore(hairStyle, style).score}% — {coherenceScore(hairStyle, style).label}</p>)}
+        <div className="flex flex-wrap justify-center gap-2">
+          {HAIR_STYLES.map((hs) => {
+            const locked = hs.pro && !isPro;
+            return (
+              <button
+                key={hs.id}
+                onClick={() => { if (locked) { onUnlock && onUnlock(); return; } setHairStyle(hs.id); track('hair_style', { style: hs.id }); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 ${hairStyle === hs.id ? 'border-amber-500 text-amber-300 bg-amber-500/10' : 'border-gray-700 text-gray-400'} ${locked ? 'opacity-60' : ''}`}
+              >
+                {locked ? '🔒 ' : '💈 '}{hs.name}
+              </button>
+            );
+          })}
+        </div>
+        {hairStyle !== 'none' && style !== 'clean' && (
+          <p className="text-center text-[11px] font-bold text-amber-300">
+            Style Coherence: {coherenceScore(hairStyle, style).score}% — {coherenceScore(hairStyle, style).label}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-400 font-bold">
-          <label>Length
-            <input type="range" min={0.6} max={1.6} step={0.05} value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full accent-amber-500" />
-          </label>
           <label>Density
             <input type="range" min={0.3} max={1} step={0.05} value={density} onChange={(e) => setDensity(Number(e.target.value))} className="w-full accent-amber-500" />
+          </label>
+          <label>Hair Length
+            <input type="range" min={0.6} max={1.6} step={0.05} value={length} onChange={(e) => setLength(Number(e.target.value))} className="w-full accent-amber-500" />
           </label>
         </div>
         <button onClick={downloadCard} className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold hover:scale-[1.02] transition-transform">
