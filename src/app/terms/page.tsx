@@ -11,34 +11,30 @@ export default function TermsPage() {
       <section className="space-y-4 text-sm text-[#ddc9c5]">
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">1. The service</h2>
-          <p>GroomAI provides AI-powered cosmetic color analysis, shade matching, and makeup education for entertainment and educational purposes.</p>
+          <p>GroomAI provides AI-powered beard style previews and barber-ready style specs, for informational and entertainment purposes.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">2. Not professional advice</h2>
-          <p>GroomAI is not medical or dermatological advice. Always patch-test new products. Consult a professional for skin conditions or allergies.</p>
+          <p>GroomAI does not provide medical, dermatological, or professional barbering advice. Style previews are estimates. Consult a professional barber or dermatologist for specific guidance.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">3. Free & PRO</h2>
-          <p>The free tier includes limited features and watermarked exports. PRO is unlocked via Whop subscription or access code. Billing, renewals and cancellations are handled by Whop.</p>
+          <p>The free tier includes 3 beard styles. PRO ($6.99 one-time) unlocks all styles and the Barber Card export. PRO is unlocked via Whop checkout or access code. Billing and payment processing are handled by Whop.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">4. Your content</h2>
-          <p>You own everything you export. Free exports carry a GroomAI watermark. Only upload photos you have the right to use.</p>
+          <p>You own everything you export, including your Barber Card. Only upload photos you have the right to use.</p>
         </div>
         <div>
           <h2 className="font-bold text-[#e8b4bc] mb-1">5. Acceptable use</h2>
-          <p>No reverse engineering, no scraping the shade database, no reselling or sharing PRO access codes.</p>
+          <p>No reverse engineering, no reselling or sharing PRO access codes.</p>
         </div>
         <div>
-          <h2 className="font-bold text-[#e8b4bc] mb-1">6. Affiliate links</h2>
-          <p>We may earn a commission when you purchase through retailer links, at no extra cost to you. Recommendations are computed by color science, never by sponsorship.</p>
+          <h2 className="font-bold text-[#e8b4bc] mb-1">6. Liability</h2>
+          <p>GroomAI is provided "as is". Beard style previews are AI-generated estimates and may not perfectly reflect real-world results, which depend on your actual hair growth, texture, and your barber's execution. We are not liable for barbering or grooming outcomes.</p>
         </div>
         <div>
-          <h2 className="font-bold text-[#e8b4bc] mb-1">7. Liability</h2>
-          <p>GroomAI is provided "as is". Shade matches are estimates affected by your lighting. We are not liable for product purchase outcomes.</p>
-        </div>
-        <div>
-          <h2 className="font-bold text-[#e8b4bc] mb-1">8. Contact</h2>
+          <h2 className="font-bold text-[#e8b4bc] mb-1">7. Contact</h2>
           <p>influenceaiprime@gmail.com</p>
         </div>
       </section>
