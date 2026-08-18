@@ -244,8 +244,8 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
       }
 
       try {
-        await fa.loadTinyFaceDetectorModel('/models');
-        await fa.loadFaceLandmark68Model('/models');
+        await fa.nets.tinyFaceDetector.loadFromUri('/models');
+        await fa.nets.faceLandmark68Net.loadFromUri('/models');
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
 
         if (det && alive) {
