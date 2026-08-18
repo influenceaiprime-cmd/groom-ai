@@ -96,7 +96,7 @@ export function renderBeard(
     l.filter = 'none';
     l.globalAlpha = 1;
     if (gray) {
-      l.globalCompositeOperation = 'multiply';
+      l.globalCompositeOperation = 'overlay';
       l.globalAlpha = 0.3;
       l.drawImage(gray, 0, 0);
       l.globalAlpha = 1;
