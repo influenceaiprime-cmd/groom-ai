@@ -211,7 +211,7 @@ export default function BeardStudio({ imageUrl, isPro, onUnlock }: BeardStudioPr
           setDetecting(false);
         }
       } catch (e) {
-        if (alive) { setStatus('Detection failed - try better lighting.'); setDetecting(false); }
+        console.error('GroomAI detection error:', e); if (alive) { setStatus('Detection failed: ' + String((e as any)?.message || e).slice(0, 80)); setDetecting(false); }
       }
     };
     img.src = imageUrl;
