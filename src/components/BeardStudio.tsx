@@ -211,10 +211,6 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
     <div className="space-y-4">
       <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 bg-black">
         <canvas ref={canvasRef} className="w-full h-auto" />
-        <div className="absolute bottom-3 left-3 border-2 border-red-500">
-          <canvas ref={debugPatchCanvasRef} className="w-16 h-16" style={{ imageRendering: "pixelated" }} />
-          <p className="text-[8px] text-red-400 bg-black/80 text-center">SAMPLE</p>
-        </div>
         <p className="absolute top-3 left-3 text-xs font-bold text-amber-300 bg-black/70 px-3 py-1 rounded-full flex items-center gap-2">
           {detecting && <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
           {status}
