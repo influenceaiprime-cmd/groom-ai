@@ -111,11 +111,8 @@ renderBeard(ctx, canvas, pts, s as BeardStyleId, lengthRef.current, densityRef.c
       if (!fa) { if (alive) { setStatus('AI not loaded - check connection and refresh.'); setDetecting(false); } return; }
 
       try {
-        console.log('Loading models from /models...');
         await fa.nets.tinyFaceDetector.loadFromUri('/models');
-        console.log('Tiny detector loaded');
         await (fa.nets.faceLandmark68Net || fa.nets.faceLandmark68).loadFromUri('/models');
-        console.log('Landmarks loaded');
         
         const det = await fa.detectSingleFace(canvas, new fa.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })).withFaceLandmarks();
         if (det && alive) {
